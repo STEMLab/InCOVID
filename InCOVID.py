@@ -198,10 +198,16 @@ class Person:
            return 5
 
     def sameRoom(self,eachH):
+        if (self.pathSize <= self.pathCounter):
+                  self.pathCounter = self.pathSize - 1 
+        if (eachH.pathSize <= eachH.pathCounter):
+                  eachH.pathCounter = eachH.pathSize - 1
         p1 = Point(self.path[self.pathCounter][0], self.path[self.pathCounter][1])
         p2 = Point(eachH.path[eachH.pathCounter][0], eachH.path[eachH.pathCounter][1])
-        if self.path[self.pathCounter][2] == self.path[self.pathCounter][2]:
+        # checking if two person are in same floor
+        if self.path[self.pathCounter][2] == eachH.path[eachH.pathCounter][2]:
          for myobject in gmlPars3D.gmlObjects_3D:
+             # checking if two person are in the same room
              if myobject.poly.contains(p1) and myobject.poly.contains(p2):
                 return True
              else:
@@ -237,8 +243,6 @@ class Person:
                  if self.humanID != eachH.humanID:
                   if self.sameRoom(eachH):
                     if eachH.healthy == True:
-                        if (self.pathSize <= self.pathCounter):
-                           self.pathCounter = self.pathSize - 1
                         # find the distance between them
                         d = eachH.getD(self.path[self.pathCounter][0], self.path[self.pathCounter][1])
                         # if the distance between two person is more than threshold distance, the probability of getting infected is ((default infection probability)/(distance between two Person objects^2))
@@ -597,7 +601,7 @@ def open_window(pathGML, pathSIMOGenMovData,numberOfInfected,percentageInfection
     # frames
     N=800
     global anim,anim2D
-    anim = FuncAnimation(fig, updateALL, frames=N, interval=10000/N, blit=True, repeat=True)
+    anim = FuncAnimation(fig, updateALL, frames=N, interval=800/N, blit=True, repeat=True)
     buttonPausingMov = tkinter.Button(frame_bottom, text="Pause simulation", bg='brown', fg='white',font=constants.fontName, command=lambda anim=anim:pauseAnimation(anim))
     buttonPausingMov.pack(padx=5, pady=5, side="left")
     buttonStartingMov = tkinter.Button(frame_bottom, text="Continue simulation",bg='green', fg='white', font=constants.fontName, command=lambda anim=anim:continueAnimation(anim))
