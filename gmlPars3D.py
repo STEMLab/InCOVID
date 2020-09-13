@@ -8,7 +8,6 @@ def resizer3D():
     return 1
 
 ####################################  GMLOBJ_MIN_MAX_3D CLASS #####################################
-# GMLOBJ class
 class GMLOBJ_MIN_MAX_3D:
     def __init__(self):
         self.min_X = 0
@@ -19,7 +18,6 @@ class GMLOBJ_MIN_MAX_3D:
         self.max_Z = 0
 
 ####################################  GMLOBJ CLASS #####################################
-# GMLOBJ class
 class GMLOBJ_3D:
     def __init__(self, objectID):
         # current position
@@ -33,7 +31,6 @@ class GMLOBJ_3D:
 
 
 ####################################  GMLOBJ_DOORS CLASS #####################################
-# GMLOBJ class
 class GMLOBJ_DOORS_3D:
     def __init__(self):
         # current position
@@ -42,7 +39,6 @@ class GMLOBJ_DOORS_3D:
         self.floor = 0
 
 ####################################  GMLOBJ_STAIR CLASS #####################################
-# GMLOBJ_STAIR class
 class GMLOBJ_STAIR_3D:
     def __init__(self):
         # current position
@@ -50,7 +46,6 @@ class GMLOBJ_STAIR_3D:
         self.allPos = []
 
 ####################################  GMLOBJ_ELEVATOR CLASS #####################################
-# GMLOBJ_ELEVATOR class
 class GMLOBJ_ELEVATOR_3D:
     def __init__(self):
         # current position
@@ -58,7 +53,6 @@ class GMLOBJ_ELEVATOR_3D:
         self.allPos = []
 
 ####################################  GMLOBJ_TRANSITION CLASS #####################################
-# GMLOBJ class
 class GMLOBJ_TRANSITION:
     def __init__(self):
         # current position
