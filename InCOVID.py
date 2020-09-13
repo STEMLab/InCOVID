@@ -202,8 +202,10 @@ class Person:
         p2 = Point(eachH.path[eachH.pathCounter][0], eachH.path[eachH.pathCounter][1])
         if self.path[self.pathCounter][2] == self.path[self.pathCounter][2]:
          for myobject in gmlPars3D.gmlObjects_3D:
-             if p1.contains(myobject.poly) and p2.contains(myobject.poly):
+             if myobject.poly.contains(p1) and myobject.poly.contains(p2):
                 return True
+             else:
+                return False
 
     def inCaseOfInfection(self,eachH):
         global infectedHumanNumber
@@ -229,12 +231,11 @@ class Person:
 
     def infectionProcess(self):
             # if the person is infected
-
             if self.infected == True:
                 # find the non-infected person
                 for eachH in humans:
+                 if self.humanID != eachH.humanID:
                   if self.sameRoom(eachH):
-                   if self.humanID != eachH.humanID:
                     if eachH.healthy == True:
                         if (self.pathSize <= self.pathCounter):
                            self.pathCounter = self.pathSize - 1
