@@ -16,7 +16,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import constants
 from shapely.geometry import Point
-from dateutil import parser
+import threading
 from datetime import datetime
 
 humans = []
@@ -133,6 +133,7 @@ def updatingTheAnimation2D(t):
     outputSecond = [h.scatter for h in tempList]
     return outputSecond
 
+
 # method used in order to find the path of the GML file
 def path(entryPath):
         f = tkinter.filedialog.askopenfilename(
@@ -168,11 +169,12 @@ class Person:
         self.pathCounter = 0
         self.infected = False
         self.healthy = True
-        self.isMoving = True
+        self.isMoving = False
         self.isStoping = False
         self.increaser = 0
         self.startT = []
         self.endT = []
+        self.waitingTime = 0.0
         self.defaultInfectionProbability = defaultInfectionPercentage
         self.infectionCoordinates = []
         self.scatter, = ax.plot([], [], [], label='Healthy person',color='yellow', marker = 'o',markeredgecolor = 'black',markeredgewidth=0.5, markersize=5, animated=True)
@@ -185,9 +187,16 @@ class Person:
         by_label = dict(zip(labl, hand))
         ax.legend(by_label.values(), by_label.keys())
 
+    def startmovement(self):
+        start_time = threading.Timer(self.waitingTime/10, self.makeMover)
+        start_time.start()
+
+    def makeMover(self):
+        self.isMoving = True
 
     def stopMoving(self):
         self.scatter, = ax.plot([], [], [], marker='', animated=True)
+        self.isStoping = True
 
     def onWhichFloor(self,currentZ):
         if currentZ >= 0 and currentZ < 20:
@@ -247,12 +256,12 @@ class Person:
 
     def infectionProcess(self):
             # if the person is infected
-            if self.isMoving == True and self.infected == True:
+            if self.isStoping == False and self.infected == True:
                 # find the non-infected person
                 for eachH in humans:
                  if self.humanID != eachH.humanID:
                   if self.sameRoom(eachH):
-                    if eachH.healthy == True:
+                    if eachH.healthy == True and eachH.isStoping == False:
                         # find the distance between them
                         d = eachH.getD(self.path[self.pathCounter][0], self.path[self.pathCounter][1])
                         # if the distance between two person is more than threshold distance, the probability of getting infected is ((default infection probability)/(distance between two Person objects^2))
@@ -283,11 +292,12 @@ class Person:
 
     # for moving on path
     def moveOnPath(self):
-        tempVarX = np.float64(self.path[self.pathCounter][0])
-        tempVarY = np.float64(self.path[self.pathCounter][1])
-        tempVarZ = np.float64(self.path[self.pathCounter][2])
-        self.pathCounter = self.pathCounter + 1
-        self.scatterZ(tempVarX,tempVarY,tempVarZ)
+        if self.isMoving:
+            tempVarX = np.float64(self.path[self.pathCounter][0])
+            tempVarY = np.float64(self.path[self.pathCounter][1])
+            tempVarZ = np.float64(self.path[self.pathCounter][2])
+            self.pathCounter = self.pathCounter + 1
+            self.scatterZ(tempVarX,tempVarY,tempVarZ)
 
     # scatter method
     def scatterZ(self,tempVarX,tempVarY,tempVarZ):
@@ -425,6 +435,16 @@ def open_window(pathGML, pathSIMOGenMovData,numberOfInfected,percentageInfection
         human.pathSize = int(len(human.path))
     infectedHumanNumber = 0
 
+    timeStartAll = []
+    for human in humans:
+        timeStartAll.append(human.startT[0])
+
+    startOfMovementTime = min(timeStartAll)
+
+    for human in humans:
+        difference = human.startT[0] - startOfMovementTime
+        human.waitingTime = difference.seconds
+
 
     secondFrame = tkinter.Frame(frame_top,highlightbackground="black", highlightcolor="black", highlightthickness=1)
     canvasScroll = tkinter.Canvas(secondFrame)
@@ -450,6 +470,9 @@ def open_window(pathGML, pathSIMOGenMovData,numberOfInfected,percentageInfection
         tkinter.Label(frameNew, font = constants.scrollFontSmall, text=initalCase).pack()
         infectedHumanNumber = infectedHumanNumber + 1
     healthyHumanNumber = HumanCount - infectedHumanNumber
+
+    for h in humans:
+        h.startmovement()
 
     secondFrame.pack(padx=5,pady=5)
     canvasScroll.pack(side="left", fill="both", expand=True)
