@@ -28,8 +28,6 @@ class GMLOBJ_3D:
         self.points = []
         self.poly = 0
 
-
-
 ####################################  GMLOBJ_DOORS_3D CLASS #####################################
 class GMLOBJ_DOORS_3D:
     def __init__(self):

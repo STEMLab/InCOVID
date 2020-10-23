@@ -18,6 +18,7 @@ import constants
 from shapely.geometry import Point
 import threading
 from datetime import datetime
+from multiprocessing import Process
 
 humans = []
 infectionCase = []
@@ -117,6 +118,7 @@ def updateALL(t):
 # used to animate the indoor gml and the update the movement of the people
 def updatingTheAnimation(t):
     for h in humans:
+        threading.Thread(target=h.checker).start()
         if (h.pathSize > h.pathCounter):
                 h.moveOnPath()
                 h.infectionProcess()
@@ -175,6 +177,7 @@ class Person:
         self.startT = []
         self.endT = []
         self.waitingTime = 0.0
+        self.roomNumber = 0.0
         self.defaultInfectionProbability = defaultInfectionPercentage
         self.infectionCoordinates = []
         self.scatter, = ax.plot([], [], [], label='Healthy person',color='yellow', marker = 'o',markeredgecolor = 'black',markeredgewidth=0.5, markersize=5, animated=True)
@@ -226,12 +229,18 @@ class Person:
         p2 = Point(eachH.path[eachH.pathCounter][0], eachH.path[eachH.pathCounter][1])
         # checking if two person are in same floor
         if self.path[self.pathCounter][2] == eachH.path[eachH.pathCounter][2]:
-         for myobject in gmlPars3D.gmlObjects_3D:
-             # checking if two person are in the same room
-             if myobject.poly.contains(p1) and myobject.poly.contains(p2):
-                return True
-             else:
+            if self.roomNumber == eachH.roomNumber:
+                    return True
+            else:
                 return False
+
+    def checker(self):
+        p = Point(self.path[self.pathCounter][0], self.path[self.pathCounter][1])
+        for myobject in gmlPars3D.gmlObjects_3D:
+            # checking if two person are in the same room
+            if myobject.poly.contains(p):
+                self.roomNumber = myobject.objectID
+
 
     def inCaseOfInfection(self,eachH):
         global infectedHumanNumber
@@ -473,6 +482,7 @@ def open_window(pathGML, pathSIMOGenMovData,numberOfInfected,percentageInfection
 
     for h in humans:
         h.startmovement()
+
 
     secondFrame.pack(padx=5,pady=5)
     canvasScroll.pack(side="left", fill="both", expand=True)
