@@ -17,7 +17,7 @@ class GMLOBJ_MIN_MAX_3D:
         self.min_Z = 0
         self.max_Z = 0
 
-####################################  GMLOBJ CLASS #####################################
+####################################  GMLOBJ_3D CLASS #####################################
 class GMLOBJ_3D:
     def __init__(self, objectID):
         # current position
@@ -28,9 +28,7 @@ class GMLOBJ_3D:
         self.points = []
         self.poly = 0
 
-
-
-####################################  GMLOBJ_DOORS CLASS #####################################
+####################################  GMLOBJ_DOORS_3D CLASS #####################################
 class GMLOBJ_DOORS_3D:
     def __init__(self):
         # current position
@@ -38,14 +36,14 @@ class GMLOBJ_DOORS_3D:
         self.allPos = []
         self.floor = 0
 
-####################################  GMLOBJ_STAIR CLASS #####################################
+####################################  GMLOBJ_STAIR_3D CLASS #####################################
 class GMLOBJ_STAIR_3D:
     def __init__(self):
         # current position
         self.sideNumber = 0
         self.allPos = []
 
-####################################  GMLOBJ_ELEVATOR CLASS #####################################
+####################################  GMLOBJ_ELEVATOR_3D CLASS #####################################
 class GMLOBJ_ELEVATOR_3D:
     def __init__(self):
         # current position

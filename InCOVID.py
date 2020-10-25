@@ -1,6 +1,7 @@
 import tkinter
 from tkinter import *
 import tkinter.filedialog
+import iso8601 as iso8601
 from matplotlib.backends.backend_tkagg import (
     FigureCanvasTkAgg, NavigationToolbar2Tk)
 from matplotlib.figure import Figure
@@ -14,17 +15,22 @@ import time
 import numpy as np
 import matplotlib.pyplot as plt
 import constants
-from shapely.geometry import Point, Polygon
-
+from shapely.geometry import Point
+import threading
+from datetime import datetime
+from multiprocessing import Process
 
 humans = []
 infectionCase = []
 floorChanger = 1
 
+
 # function for updating the values and the percentage in the pie chart
 def updaterOfValuesAndPercentage(this, thisValues):
     output = int(this / 99.*np.sum(thisValues))
     return "{:.1f}%\n({:d})".format(this, output)
+
+
 
 # function for updating graph, pie chart, and label values
 def update(ct, timeArray, infectedHumanNumber):
@@ -65,7 +71,6 @@ def drawerByFloor(floorN):
                  allPoints2D.append(temp)
             allObjects2D.append(allPoints2D)
             allPoints2D = []
-
     # drawing the doors 2D
     for myobject in gmlPars3D.gmlObjectsDoors_3D:
       if myobject.floor == floorN:
@@ -93,7 +98,6 @@ class Graph(tkinter.Frame):
         canvas._tkcanvas.pack(side=tkinter.TOP, fill=tkinter.BOTH, expand=True)
         canvas.get_tk_widget().update_idletasks()
 
-
 # PieGraph class
 # used for displaying PieGraph
 class PieGraph(tkinter.Frame):
@@ -111,16 +115,15 @@ class PieGraph(tkinter.Frame):
 def updateALL(t):
     first = updatingTheAnimation(t)
     second = updatingTheAnimation2D(t)
+
     return first+second
+
 
 # used to animate the indoor gml and the update the movement of the people
 def updatingTheAnimation(t):
     for h in humans:
         if (h.pathSize > h.pathCounter):
                 h.moveOnPath()
-                h.infectionProcess()
-        elif (h.pathSize <= h.pathCounter):
-                h.stopMovementOnPath()
                 h.infectionProcess()
     outputFirst = [h.scatter for h in humans]
     return outputFirst
@@ -160,8 +163,6 @@ def messageShower():
     if (infectedHumanNumber == HumanCount):
         displayWarning()
 
-
-
 # Person class
 class Person:
     def __init__(self,humanID, xyz, v,defaultInfectionPercentage):
@@ -173,17 +174,45 @@ class Person:
         self.pathCounter = 0
         self.infected = False
         self.healthy = True
+        self.isMoving = False
+        self.isStoping = True
+        self.increaser = 0
+        self.startT = []
+        self.endT = []
+        self.waitingTime = 0.0
+        self.roomNumber = 0.0
         self.defaultInfectionProbability = defaultInfectionPercentage
         self.infectionCoordinates = []
-        self.scatter, = ax.plot([], [], [], label='Healthy person',color='yellow', marker = 'o',markeredgecolor = 'black',markeredgewidth=0.5, markersize=5, animated=True)
+        self.scatter, = ax.plot([], [], [], marker='', animated=True)
 
     def makeInfected(self):
         self.infected = True
         self.healthy = False
-        self.scatter, = ax.plot([], [], [], color='red', label='Infected person', marker='o', markeredgecolor='black', markeredgewidth=0.5,markersize=5, animated=True)
+        self.scatter, = ax.plot([], [], [], color='red', label='Infected person', marker='o',
+                                markeredgecolor='black', markeredgewidth=0.5, markersize=5, animated=True)
+
+    def startmovement(self):
+        if self.isMoving==False:
+            start_time = threading.Timer(self.waitingTime, self.makeMover)
+            start_time.start()
+
+    def makeMover(self):
+        self.isStoping = False
+        self.isMoving = True
+        if self.infected:
+            self.scatter, = ax.plot([], [], [], color='red', label='Infected person', marker='o',
+                                    markeredgecolor='black', markeredgewidth=0.5, markersize=5, animated=True)
+        elif self.healthy:
+            self.scatter, = ax.plot([], [], [], label='Healthy person', color='yellow', marker='o', markeredgecolor='black',
+                                markeredgewidth=0.5, markersize=5, animated=True)
         hand, labl = ax.get_legend_handles_labels()
         by_label = dict(zip(labl, hand))
         ax.legend(by_label.values(), by_label.keys())
+
+    def stopMoving(self):
+        self.isMoving = False
+        self.isStoping = True
+        self.scatter, = ax.plot([], [], [], marker='', animated=True)
 
     def onWhichFloor(self,currentZ):
         if currentZ >= 0 and currentZ < 20:
@@ -198,20 +227,40 @@ class Person:
            return 5
 
     def sameRoom(self,eachH):
-        if (self.pathSize <= self.pathCounter):
-                  self.pathCounter = self.pathSize - 1 
-        if (eachH.pathSize <= eachH.pathCounter):
-                  eachH.pathCounter = eachH.pathSize - 1
+        if(self.pathSize <= self.pathCounter):
+            self.pathCounter = self.pathSize - 1
+            self.increaser +=1
+        if(eachH.pathSize <= eachH.pathCounter):
+            eachH.pathCounter = eachH.pathSize - 1
+            eachH.increaser +=1
+        if (self.increaser == 1):
+                  self.stopMoving()
+        if (eachH.increaser == 1):
+                  eachH.stopMoving()
+
         p1 = Point(self.path[self.pathCounter][0], self.path[self.pathCounter][1])
         p2 = Point(eachH.path[eachH.pathCounter][0], eachH.path[eachH.pathCounter][1])
         # checking if two person are in same floor
         if self.path[self.pathCounter][2] == eachH.path[eachH.pathCounter][2]:
-         for myobject in gmlPars3D.gmlObjects_3D:
-             # checking if two person are in the same room
-             if myobject.poly.contains(p1) and myobject.poly.contains(p2):
-                return True
-             else:
-                return False
+            if self.roomNumber == eachH.roomNumber:
+                    return True
+            else:
+                    return False
+
+
+    def currentLoc(self):
+            if self.isMoving == True:
+                myTempThread = threading.Thread(target=self.checker)
+                myTempThread.start()
+
+    def checker(self):
+        if self.isStoping==False:
+            p = Point(self.path[self.pathCounter][0], self.path[self.pathCounter][1])
+            for myobject in gmlPars3D.gmlObjects_3D:
+                # checking if two person are in the same room
+                if myobject.poly.contains(p):
+                    self.roomNumber = myobject.objectID
+
 
     def inCaseOfInfection(self,eachH):
         global infectedHumanNumber
@@ -233,16 +282,15 @@ class Person:
         newCase = str(eachH.humanID) + "  |  " + str(round(intTime, 2))
         tkinter.Label(frameNew, font=constants.scrollFontSmall, text=newCase).pack()
         update(ct, timeArray, infectedHumanNumber)
-        # messageShower()
 
     def infectionProcess(self):
             # if the person is infected
-            if self.infected == True:
+            if self.isStoping == False and self.isMoving==True and self.infected == True:
                 # find the non-infected person
                 for eachH in humans:
                  if self.humanID != eachH.humanID:
                   if self.sameRoom(eachH):
-                    if eachH.healthy == True:
+                    if eachH.healthy == True and eachH.isStoping == False and eachH.isMoving==True:
                         # find the distance between them
                         d = eachH.getD(self.path[self.pathCounter][0], self.path[self.pathCounter][1])
                         # if the distance between two person is more than threshold distance, the probability of getting infected is ((default infection probability)/(distance between two Person objects^2))
@@ -273,19 +321,15 @@ class Person:
 
     # for moving on path
     def moveOnPath(self):
-        tempVarX = np.float64(self.path[self.pathCounter][0])
-        tempVarY = np.float64(self.path[self.pathCounter][1])
-        tempVarZ = np.float64(self.path[self.pathCounter][2])
-        self.pathCounter = self.pathCounter + 1
-        self.scatter.set_xdata(tempVarX)
-        self.scatter.set_ydata(tempVarY)
-        self.scatter.set_3d_properties(tempVarZ)
+        if self.isMoving:
+            tempVarX = np.float64(self.path[self.pathCounter][0])
+            tempVarY = np.float64(self.path[self.pathCounter][1])
+            tempVarZ = np.float64(self.path[self.pathCounter][2])
+            self.pathCounter = self.pathCounter + 1
+            self.scatterZ(tempVarX,tempVarY,tempVarZ)
 
-    # for the case when the object finished walking it's path
-    def stopMovementOnPath(self):
-        tempVarX = np.float64(self.path[self.pathSize-1][0])
-        tempVarY = np.float64(self.path[self.pathSize-1][1])
-        tempVarZ = np.float64(self.path[self.pathSize-1][2])
+    # scatter method
+    def scatterZ(self,tempVarX,tempVarY,tempVarZ):
         self.scatter.set_xdata(tempVarX)
         self.scatter.set_ydata(tempVarY)
         self.scatter.set_3d_properties(tempVarZ)
@@ -301,7 +345,6 @@ def continueAnimation(anim):
 # pause animation function
 def pauseAnimation(anim):
     anim.event_source.stop()
-
 
 #InfectionCase class
 class InfectionCase:
@@ -322,13 +365,11 @@ class InfectionCase:
         self.scatter.set_ydata(tempVarY)
         self.scatter.set_3d_properties(tempVarZ)
 
-
 def closeFunction():
     ax.collections.pop()
     ax2D.collections.pop()
     top.destroy()
     root.destroy()
-
 
 # SECOND WINDOW
 def open_window(pathGML, pathSIMOGenMovData,numberOfInfected,percentageInfection,spreadD):
@@ -361,7 +402,6 @@ def open_window(pathGML, pathSIMOGenMovData,numberOfInfected,percentageInfection
     gmlFloors = gmlPars3D.myGML_3D(pathGML.get())
     # parsing movement data created from SIMOGen program
     fromCSV, idWithCoord, id_arr = CSV_dataExtractor.gettingData(pathSIMOGenMovData.get())
-
 
     for eachObject in gmlPars3D.gmlObjects_MIN_MAX_3D:
         print("highest X:")
@@ -408,17 +448,32 @@ def open_window(pathGML, pathSIMOGenMovData,numberOfInfected,percentageInfection
         regularHuman.humanID = id_arr[i]
         humans.append(regularHuman)
 
-    # adding path to each person
+    # adding path,start and end time to each person
     for h in humans:
         for i in range(len(idWithCoord)):
             if h.humanID == idWithCoord[i][0]:
                 temporary = [idWithCoord[i][1], idWithCoord[i][2], idWithCoord[i][3]+2.5]
                 h.path.append(temporary)
+                updatedStartTime = iso8601.parse_date(idWithCoord[i][4])
+                updatedEndTime = iso8601.parse_date(idWithCoord[i][5])
+                h.startT.append(updatedStartTime)
+                h.endT.append(updatedEndTime)
 
     # adding the size of the path to each person
     for human in humans:
         human.pathSize = int(len(human.path))
     infectedHumanNumber = 0
+
+    timeStartAll = []
+    for human in humans:
+        timeStartAll.append(human.startT[0])
+
+    startOfMovementTime = min(timeStartAll)
+
+    for human in humans:
+        difference = human.startT[0] - startOfMovementTime
+        human.waitingTime = difference.seconds
+
 
     secondFrame = tkinter.Frame(frame_top,highlightbackground="black", highlightcolor="black", highlightthickness=1)
     canvasScroll = tkinter.Canvas(secondFrame)
@@ -445,11 +500,11 @@ def open_window(pathGML, pathSIMOGenMovData,numberOfInfected,percentageInfection
         infectedHumanNumber = infectedHumanNumber + 1
     healthyHumanNumber = HumanCount - infectedHumanNumber
 
+
+
     secondFrame.pack(padx=5,pady=5)
     canvasScroll.pack(side="left", fill="both", expand=True)
     scrollbar.pack(side="right", fill="y")
-
-
 
     thirdFrame = tkinter.Frame(frame_top, highlightbackground="black", highlightcolor="black", highlightthickness=1)
     tkinter.Label(thirdFrame, font=constants.scrollFontBig, text="Infection case coordinates in each floor").pack(padx=3,pady=3)
@@ -590,13 +645,20 @@ def open_window(pathGML, pathSIMOGenMovData,numberOfInfected,percentageInfection
     thisIndoorDoors = ax.add_collection3d(Poly3DCollection(allObjectsDoors,facecolors='y',alpha=0.5, linewidth=0.5))
 
     # drawing 2D version
-    thisIndoorDoors2D = ax2D.add_collection3d(
-        Poly3DCollection(allObjects2D_Doors, facecolors='y', alpha=0.9, linewidth=1))
     thisIndoor2D = ax2D.add_collection3d(Poly3DCollection(allObjects2D,edgecolors='k', alpha=0.7,linewidth=1))
-    fig2D.suptitle("Floor "+str(floorChanger)+":", fontsize=12)
+    thisIndoorDoors2D = ax2D.add_collection3d(Poly3DCollection(allObjects2D_Doors, facecolors='y', edgecolors='y',alpha=0.7, linewidth=1))
+
     ax.set_axis_off()
     ax2D.set_axis_off()
     ax2D.view_init(90)
+
+    # start movement at certain time
+    for h in humans:
+        h.startmovement()
+
+    # check the location of the human
+    for human in humans:
+        human.currentLoc()
 
     # frames
     N=800
@@ -606,7 +668,6 @@ def open_window(pathGML, pathSIMOGenMovData,numberOfInfected,percentageInfection
     buttonPausingMov.pack(padx=5, pady=5, side="left")
     buttonStartingMov = tkinter.Button(frame_bottom, text="Continue simulation",bg='green', fg='white', font=constants.fontName, command=lambda anim=anim:continueAnimation(anim))
     buttonStartingMov.pack(padx=5, pady=5, side="left")
-
     canvas.draw()
     canvas2D.draw()
 
@@ -642,7 +703,7 @@ if __name__ == "__main__":
     labelInfPercntg = Label(root, textvariable=labelInfectionPercentage, font=constants.fontName, height=2)
     labelInfPercntg.pack()
     percentageInfection = StringVar(None)
-    percentageInfection.set("0.003")
+    percentageInfection.set("0.9")
     perInfec = Entry(root, textvariable=percentageInfection, font=constants.fontName, width=10)
     perInfec.pack()
     labelSpreadDistance = StringVar()

@@ -31,10 +31,7 @@
 ```
 $ python InCOVID.py
 ```
-- MAC OS
-```
-$ python3 InCOVID.py
-```
+
 ## Usage
 <img src="images/menu.png" alt="menu" width="300" height="400">
 

@@ -26,10 +26,10 @@ def gettingData(fileName):
                 allCoord.append(row[4])
                 line.append(row)
                 temp = [float(x) for x in row[3].split(' ')]
-                temp = [row[0], temp[0], temp[1], temp[2]]
+                temp = [row[0], temp[0], temp[1], temp[2],row[1],row[2]]
                 myLine.append(temp)
                 temp2 = [float(x) for x in row[4].split(' ')]
-                temp2 = [row[0], temp2[0], temp2[1], temp2[2]]
+                temp2 = [row[0], temp2[0], temp2[1], temp2[2],row[1],row[2]]
                 myLine.append(temp2)
     setting = set()
     id_arr = []
