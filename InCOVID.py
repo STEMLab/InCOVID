@@ -27,13 +27,13 @@ floorChanger = 1
 
 # function for updating the values and the percentage in the pie chart
 def updaterOfValuesAndPercentage(this, thisValues):
-    output = int(this / 99.*np.sum(thisValues))
+    output = int(this / 99.999*np.sum(thisValues))
     return "{:.1f}%\n({:d})".format(this, output)
 
 
 
 # function for updating graph, pie chart, and label values
-def update(ct, timeArray, infectedHumanNumber):
+def update(ct, timeArray, infectedHumanNumber,healthPersonNumber):
         global c,axPie
         c.clear()
         c.plot(timeArray, ct,color="red")
@@ -41,7 +41,6 @@ def update(ct, timeArray, infectedHumanNumber):
         cvst, = c.plot(int(infectedHumanNumber), color="red", label="Infected people")
         c.legend(handles=[cvst])
         axPie.clear()
-        healthPersonNumber = HumanCount - infectedHumanNumber
         dataProportion = np.array([healthPersonNumber, infectedHumanNumber])
         axPie.pie(dataProportion, autopct=lambda val: updaterOfValuesAndPercentage(val, dataProportion),
                   explode=constants.explode, labels=constants.labelCondition, shadow=True, colors=constants.colors)
@@ -115,7 +114,6 @@ class PieGraph(tkinter.Frame):
 def updateALL(t):
     first = updatingTheAnimation(t)
     second = updatingTheAnimation2D(t)
-
     return first+second
 
 
@@ -191,6 +189,7 @@ class Person:
         self.scatter, = ax.plot([], [], [], color='red', label='Infected person', marker='o',
                                 markeredgecolor='black', markeredgewidth=0.5, markersize=5, animated=True)
 
+
     def startmovement(self):
         if self.isMoving==False:
             start_time = threading.Timer(self.waitingTime, self.makeMover)
@@ -205,9 +204,9 @@ class Person:
         elif self.healthy:
             self.scatter, = ax.plot([], [], [], label='Healthy person', color='yellow', marker='o', markeredgecolor='black',
                                 markeredgewidth=0.5, markersize=5, animated=True)
-        hand, labl = ax.get_legend_handles_labels()
-        by_label = dict(zip(labl, hand))
-        ax.legend(by_label.values(), by_label.keys())
+        # hand, labl = ax.get_legend_handles_labels()
+        # by_label = dict(zip(labl, hand))
+        # ax.legend(by_label.values(), by_label.keys())
 
     def stopMoving(self):
         self.isMoving = False
@@ -249,21 +248,22 @@ class Person:
 
 
     def currentLoc(self):
-            if self.isMoving == True:
-                myTempThread = threading.Thread(target=self.checker)
+            if self.isMoving is False:
+                pass
+            if self.isMoving is True and self.isStoping is False:
+                myTempThread = threading.Thread(target=self.checker, daemon=True)
                 myTempThread.start()
 
     def checker(self):
-        if self.isStoping==False:
             p = Point(self.path[self.pathCounter][0], self.path[self.pathCounter][1])
             for myobject in gmlPars3D.gmlObjects_3D:
-                # checking if two person are in the same room
+                # checking current room number where the person now is located
                 if myobject.poly.contains(p):
                     self.roomNumber = myobject.objectID
 
 
     def inCaseOfInfection(self,eachH):
-        global infectedHumanNumber
+        global infectedHumanNumber,healthyHumanNumber
         global ct, timeArray
         eachH.makeInfected()
         tempObject = InfectionCase()
@@ -281,16 +281,17 @@ class Person:
         timeArray.append(intTime)
         newCase = str(eachH.humanID) + "  |  " + str(round(intTime, 2))
         tkinter.Label(frameNew, font=constants.scrollFontSmall, text=newCase).pack()
-        update(ct, timeArray, infectedHumanNumber)
+        healthyHumanNumber = HumanCount - infectedHumanNumber
+        update(ct, timeArray, infectedHumanNumber,healthyHumanNumber)
 
     def infectionProcess(self):
             # if the person is infected
-            if self.isStoping == False and self.isMoving==True and self.infected == True:
+            if self.isStoping is False and self.isMoving is True and self.infected is True:
                 # find the non-infected person
                 for eachH in humans:
                  if self.humanID != eachH.humanID:
-                  if self.sameRoom(eachH):
-                    if eachH.healthy == True and eachH.isStoping == False and eachH.isMoving==True:
+                     if eachH.healthy == True and eachH.isStoping == False and eachH.isMoving == True:
+                       if self.sameRoom(eachH):
                         # find the distance between them
                         d = eachH.getD(self.path[self.pathCounter][0], self.path[self.pathCounter][1])
                         # if the distance between two person is more than threshold distance, the probability of getting infected is ((default infection probability)/(distance between two Person objects^2))
@@ -437,7 +438,7 @@ def open_window(pathGML, pathSIMOGenMovData,numberOfInfected,percentageInfection
     canvas.mpl_connect('button_release_event', ax.axes._button_release)
     canvas.mpl_connect('motion_notify_event', ax.axes._on_move)
 
-    global HumanCount,infectedHumanNumber
+    global HumanCount,infectedHumanNumber,healthyHumanNumber
     HumanCount = len(id_arr)
 
     # creating objects by assigning their id's from csv file
@@ -463,6 +464,7 @@ def open_window(pathGML, pathSIMOGenMovData,numberOfInfected,percentageInfection
     for human in humans:
         human.pathSize = int(len(human.path))
     infectedHumanNumber = 0
+
 
     timeStartAll = []
     for human in humans:
@@ -499,7 +501,6 @@ def open_window(pathGML, pathSIMOGenMovData,numberOfInfected,percentageInfection
         tkinter.Label(frameNew, font = constants.scrollFontSmall, text=initalCase).pack()
         infectedHumanNumber = infectedHumanNumber + 1
     healthyHumanNumber = HumanCount - infectedHumanNumber
-
 
 
     secondFrame.pack(padx=5,pady=5)
@@ -550,33 +551,26 @@ def open_window(pathGML, pathSIMOGenMovData,numberOfInfected,percentageInfection
     # Creating pie
     myPie, axPie = plt.subplots(figsize=(6, 6))
     axPie.pie(dataProportion, autopct = lambda val: updaterOfValuesAndPercentage(val, dataProportion), explode=constants.explode, labels=constants.labelCondition, shadow = True, colors = constants.colors, wedgeprops = constants.wedgeProp)
-
     # setting the dimesions of the matplot 3D
     xVal = eachObject.max_X
     ax.set_xlim3d([0.0, xVal])
     ax.set_xlabel('X')
-
     yVal = eachObject.max_Y*2
     ax.set_ylim3d([-10.0,yVal])
     ax.set_ylabel('Y')
-
     zVal = eachObject.max_Z*5
     ax.set_zlim3d([-10.0, zVal])
     ax.set_zlabel('Z')
-
     # setting the dimesions of the matplot 2D
     xVal2d = eachObject.max_X
     ax2D.set_xlim3d([0.0, xVal2d])
     ax2D.set_xlabel('X')
-
     yVal2d = eachObject.max_Y*2
     ax2D.set_ylim3d([-10.0,yVal2d])
     ax2D.set_ylabel('Y')
-
     zVal2d = eachObject.max_Z*5
     ax2D.set_zlim3d([-10.0, zVal2d])
     ax2D.set_zlabel('Z')
-
     # drawing the rooms and corridors
     for myobject in gmlPars3D.gmlObjects_3D:
         for i in (range(len(myobject.allPos)-1)):
@@ -618,44 +612,35 @@ def open_window(pathGML, pathSIMOGenMovData,numberOfInfected,percentageInfection
 
     global myTime,var1, var2, var3, label1, label2, label3
     myTime = time.time()
-
     var1 = StringVar()
     label1 = Label(canvas1, textvariable=var1, font=('Arial', 14), relief=FLAT)
     var1.set("Total number of people: " + str(HumanCount))
     label1.pack(side="top", padx=5, pady=5)
-
     var2 = StringVar()
     label2 = Label(canvas1, textvariable=var2, font=('Arial', 14), relief=FLAT)
     var2.set("Number of infected people: "+str(infectedHumanNumber))
     label2.pack(side="top", padx=5, pady=5)
-
     var3 = StringVar()
     label3 = Label(canvas1, textvariable=var3, font=('Arial', 14), relief=FLAT)
     var3.set("Time: 0")
     label3.pack(side="top", padx=5, pady=5)
-
     labelNew = Label(canvas1, justify='center')
     labelNew.pack()
     Graph(canvas1).pack(side="bottom",padx=10,pady=10)
     PieGraph(canvas1).pack(side="bottom",padx=10,pady=10)
 
-
     # drawing 3D version
     thisIndoor = ax.add_collection3d(Poly3DCollection(allObjects,edgecolors='k', alpha=0.1,linewidth=0.17))
     thisIndoorDoors = ax.add_collection3d(Poly3DCollection(allObjectsDoors,facecolors='y',alpha=0.5, linewidth=0.5))
-
     # drawing 2D version
     thisIndoor2D = ax2D.add_collection3d(Poly3DCollection(allObjects2D,edgecolors='k', alpha=0.7,linewidth=1))
     thisIndoorDoors2D = ax2D.add_collection3d(Poly3DCollection(allObjects2D_Doors, facecolors='y', edgecolors='y',alpha=0.7, linewidth=1))
-
     ax.set_axis_off()
     ax2D.set_axis_off()
     ax2D.view_init(90)
-
     # start movement at certain time
     for h in humans:
         h.startmovement()
-
     # check the location of the human
     for human in humans:
         human.currentLoc()
@@ -670,7 +655,6 @@ def open_window(pathGML, pathSIMOGenMovData,numberOfInfected,percentageInfection
     buttonStartingMov.pack(padx=5, pady=5, side="left")
     canvas.draw()
     canvas2D.draw()
-
 
 if __name__ == "__main__":
     root = Tk()
