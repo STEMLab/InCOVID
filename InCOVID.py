@@ -6,8 +6,8 @@ from matplotlib.backends.backend_tkagg import (
     FigureCanvasTkAgg, NavigationToolbar2Tk)
 from matplotlib.figure import Figure
 from mpl_toolkits.mplot3d.art3d import Poly3DCollection
-import CSV_dataExtractor
-import gmlPars3D
+import csvReader
+import gmlParser
 from tkinter import Tk, Label, Entry, StringVar
 from mpl_toolkits.mplot3d import Axes3D
 from matplotlib.animation import FuncAnimation
@@ -17,8 +17,6 @@ import matplotlib.pyplot as plt
 import constants
 from shapely.geometry import Point
 import threading
-from datetime import datetime
-from multiprocessing import Process
 
 humans = []
 infectionCase = []
@@ -29,7 +27,6 @@ floorChanger = 1
 def updaterOfValuesAndPercentage(this, thisValues):
     output = int(this / 99.999*np.sum(thisValues))
     return "{:.1f}%\n({:d})".format(this, output)
-
 
 
 # function for updating graph, pie chart, and label values
@@ -63,7 +60,7 @@ def drawerByFloor(floorN):
     floorChanger = floorN
     fig2D.suptitle("Floor "+str(floorN)+":", fontsize=12)
     # drawing the rooms and corridors 2D
-    for myobject in gmlPars3D.gmlObjects_3D:
+    for myobject in gmlParser.gmlObjects_3D:
         if myobject.floor==floorN:
             for i in (range(len(myobject.allPos)-1)):
                  temp = [myobject.allPos[i][0], myobject.allPos[i][1], myobject.allPos[i][2]]
@@ -71,7 +68,7 @@ def drawerByFloor(floorN):
             allObjects2D.append(allPoints2D)
             allPoints2D = []
     # drawing the doors 2D
-    for myobject in gmlPars3D.gmlObjectsDoors_3D:
+    for myobject in gmlParser.gmlObjectsDoors_3D:
       if myobject.floor == floorN:
         for i in (range(len(myobject.allPos) - 1)):
             temp = [myobject.allPos[i][0], myobject.allPos[i][1], myobject.allPos[i][2]]
@@ -204,9 +201,9 @@ class Person:
         elif self.healthy:
             self.scatter, = ax.plot([], [], [], label='Healthy person', color='yellow', marker='o', markeredgecolor='black',
                                 markeredgewidth=0.5, markersize=5, animated=True)
-        # hand, labl = ax.get_legend_handles_labels()
-        # by_label = dict(zip(labl, hand))
-        # ax.legend(by_label.values(), by_label.keys())
+        hand, labl = ax.get_legend_handles_labels()
+        by_label = dict(zip(labl, hand))
+        ax.legend(by_label.values(), by_label.keys())
 
     def stopMoving(self):
         self.isMoving = False
@@ -236,16 +233,12 @@ class Person:
                   self.stopMoving()
         if (eachH.increaser == 1):
                   eachH.stopMoving()
-
-        p1 = Point(self.path[self.pathCounter][0], self.path[self.pathCounter][1])
-        p2 = Point(eachH.path[eachH.pathCounter][0], eachH.path[eachH.pathCounter][1])
         # checking if two person are in same floor
         if self.path[self.pathCounter][2] == eachH.path[eachH.pathCounter][2]:
             if self.roomNumber == eachH.roomNumber:
                     return True
             else:
                     return False
-
 
     def currentLoc(self):
             if self.isMoving is False:
@@ -256,11 +249,10 @@ class Person:
 
     def checker(self):
             p = Point(self.path[self.pathCounter][0], self.path[self.pathCounter][1])
-            for myobject in gmlPars3D.gmlObjects_3D:
+            for myobject in gmlParser.gmlObjects_3D:
                 # checking current room number where the person now is located
                 if myobject.poly.contains(p):
                     self.roomNumber = myobject.objectID
-
 
     def inCaseOfInfection(self,eachH):
         global infectedHumanNumber,healthyHumanNumber
@@ -387,24 +379,19 @@ def open_window(pathGML, pathSIMOGenMovData,numberOfInfected,percentageInfection
     ax = Axes3D(fig)
     fig2D = Figure(figsize=(5, 5), dpi=100,facecolor='#F0F0F0')
     ax2D = Axes3D(fig2D)
-
     allPoints = []
     allObjects = []
     allPointsDoors = []
     allObjectsDoors = []
-
     global spreadDistance
     spreadDistance = float(spreadD.get())
-
     # scaling by 1/150
     spreadDistance = spreadDistance/150
-
     # parsing indoor gml data
-    gmlFloors = gmlPars3D.myGML_3D(pathGML.get())
+    gmlFloors = gmlParser.myGML_3D(pathGML.get())
     # parsing movement data created from SIMOGen program
-    fromCSV, idWithCoord, id_arr = CSV_dataExtractor.gettingData(pathSIMOGenMovData.get())
-
-    for eachObject in gmlPars3D.gmlObjects_MIN_MAX_3D:
+    fromCSV, idWithCoord, id_arr = csvReader.gettingData(pathSIMOGenMovData.get())
+    for eachObject in gmlParser.gmlObjects_MIN_MAX_3D:
         print("highest X:")
         print(eachObject.max_X)
         print("highest Y:")
@@ -418,7 +405,6 @@ def open_window(pathGML, pathSIMOGenMovData,numberOfInfected,percentageInfection
         print(eachObject.min_Y)
         print("lowest Z:")
         print(eachObject.min_Z)
-
 
     global canvas1,frame_top,canvas,canvas2D,frameNew
     canvas1 = tkinter.Canvas(top, highlightbackground="black", highlightcolor="black", highlightthickness=1)
@@ -440,7 +426,6 @@ def open_window(pathGML, pathSIMOGenMovData,numberOfInfected,percentageInfection
 
     global HumanCount,infectedHumanNumber,healthyHumanNumber
     HumanCount = len(id_arr)
-
     # creating objects by assigning their id's from csv file
     for i in np.arange(0, HumanCount):
         xyz = np.random.rand(1, 1)[0]
@@ -448,7 +433,6 @@ def open_window(pathGML, pathSIMOGenMovData,numberOfInfected,percentageInfection
         regularHuman = Person(i, xyz, v, float(percentageInfection.get()))
         regularHuman.humanID = id_arr[i]
         humans.append(regularHuman)
-
     # adding path,start and end time to each person
     for h in humans:
         for i in range(len(idWithCoord)):
@@ -459,41 +443,31 @@ def open_window(pathGML, pathSIMOGenMovData,numberOfInfected,percentageInfection
                 updatedEndTime = iso8601.parse_date(idWithCoord[i][5])
                 h.startT.append(updatedStartTime)
                 h.endT.append(updatedEndTime)
-
     # adding the size of the path to each person
     for human in humans:
         human.pathSize = int(len(human.path))
     infectedHumanNumber = 0
-
-
     timeStartAll = []
     for human in humans:
         timeStartAll.append(human.startT[0])
-
     startOfMovementTime = min(timeStartAll)
-
     for human in humans:
         difference = human.startT[0] - startOfMovementTime
         human.waitingTime = difference.seconds
-
-
     secondFrame = tkinter.Frame(frame_top,highlightbackground="black", highlightcolor="black", highlightthickness=1)
     canvasScroll = tkinter.Canvas(secondFrame)
     scrollbar = tkinter.Scrollbar(secondFrame, orient="vertical", command=canvasScroll.yview)
     frameNew = tkinter.Frame(canvasScroll)
-
     frameNew.bind(
         "<Configure>",
         lambda e: canvasScroll.configure(
             scrollregion=canvasScroll.bbox("all")
         )
     )
-
     canvasScroll.create_window((0, 0), window=frameNew, anchor="nw")
     canvasScroll.configure(yscrollcommand=scrollbar.set)
     tkinter.Label(frameNew, font=constants.scrollFontBig, text="Person id  |  Infection time").pack()
     tkinter.Label(frameNew, font=constants.scrollFontBig, text="--------------------------------------").pack()
-
     numberInfectedFromEntry = int(numberOfInfected.get())
     for i in range(numberInfectedFromEntry):
         humans[i].makeInfected()
@@ -501,22 +475,17 @@ def open_window(pathGML, pathSIMOGenMovData,numberOfInfected,percentageInfection
         tkinter.Label(frameNew, font = constants.scrollFontSmall, text=initalCase).pack()
         infectedHumanNumber = infectedHumanNumber + 1
     healthyHumanNumber = HumanCount - infectedHumanNumber
-
-
     secondFrame.pack(padx=5,pady=5)
     canvasScroll.pack(side="left", fill="both", expand=True)
     scrollbar.pack(side="right", fill="y")
-
     thirdFrame = tkinter.Frame(frame_top, highlightbackground="black", highlightcolor="black", highlightthickness=1)
     tkinter.Label(thirdFrame, font=constants.scrollFontBig, text="Infection case coordinates in each floor").pack(padx=3,pady=3)
     canvas2D = FigureCanvasTkAgg(fig2D, master=thirdFrame)
     thirdFrame.pack(padx=5, pady=5)
     canvas2D.get_tk_widget().pack(side="bottom",expand=True,padx=5,pady=10)
-
     canvas2D.mpl_connect('button_press_event', ax2D.axes._button_press)
     canvas2D.mpl_connect('button_release_event', ax2D.axes._button_release)
     canvas2D.mpl_connect('motion_notify_event', ax2D.axes._on_move)
-
     floorNumber = 1
     button1F = tkinter.Button(thirdFrame, text="1st Floor", font=constants.fontName,command=lambda floorNumber=floorNumber:drawerByFloor(floorNumber))
     button1F.pack(padx=10, pady=1, side="left")
@@ -532,7 +501,6 @@ def open_window(pathGML, pathSIMOGenMovData,numberOfInfected,percentageInfection
         floorNumber = 4
         button4F = tkinter.Button(thirdFrame, text="4th Floor", font=constants.fontName,command=lambda floorNumber=floorNumber:drawerByFloor(floorNumber))
         button4F.pack(padx=10, pady=1, side="left")
-
     global ct,timeArray
     ct = [infectedHumanNumber]
     timeArray = [0]
@@ -572,7 +540,7 @@ def open_window(pathGML, pathSIMOGenMovData,numberOfInfected,percentageInfection
     ax2D.set_zlim3d([-10.0, zVal2d])
     ax2D.set_zlabel('Z')
     # drawing the rooms and corridors
-    for myobject in gmlPars3D.gmlObjects_3D:
+    for myobject in gmlParser.gmlObjects_3D:
         for i in (range(len(myobject.allPos)-1)):
             temp = [myobject.allPos[i][0], myobject.allPos[i][1], myobject.allPos[i][2]]
             allPoints.append(temp)
@@ -580,7 +548,7 @@ def open_window(pathGML, pathSIMOGenMovData,numberOfInfected,percentageInfection
         allPoints = []
 
     # drawing the doors
-    for myobject in gmlPars3D.gmlObjectsDoors_3D:
+    for myobject in gmlParser.gmlObjectsDoors_3D:
         for i in (range(len(myobject.allPos) - 1)):
             temp = [myobject.allPos[i][0], myobject.allPos[i][1], myobject.allPos[i][2]]
             allPointsDoors.append(temp)
@@ -593,7 +561,7 @@ def open_window(pathGML, pathSIMOGenMovData,numberOfInfected,percentageInfection
     allPoints2D_Doors=[]
     allObjects2D_Doors = []
     # drawing the rooms and corridors 2D
-    for myobject in gmlPars3D.gmlObjects_3D:
+    for myobject in gmlParser.gmlObjects_3D:
         if myobject.floor==1:
             for i in (range(len(myobject.allPos)-1)):
                  temp = [myobject.allPos[i][0], myobject.allPos[i][1], myobject.allPos[i][2]]
@@ -602,7 +570,7 @@ def open_window(pathGML, pathSIMOGenMovData,numberOfInfected,percentageInfection
             allPoints2D = []
 
     # drawing the doors
-    for myobject in gmlPars3D.gmlObjectsDoors_3D:
+    for myobject in gmlParser.gmlObjectsDoors_3D:
       if myobject.floor == 1:
         for i in (range(len(myobject.allPos) - 1)):
             temp = [myobject.allPos[i][0], myobject.allPos[i][1], myobject.allPos[i][2]]
