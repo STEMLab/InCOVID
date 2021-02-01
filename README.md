@@ -20,15 +20,20 @@
 
 
 ## Prerequisites
-- Python 3.8
+- Python 3.7
 - Java Development Kit 8 (JDK 8)
 - [Apache Maven 3.x](https://maven.apache.org/download.cgi)
 
 
 ## Getting Started
 
-- Windows
+- To install the packages type in the console
 ```
+$ pip install -r requirements.txt
+```
+- To run the program
+```
+$ cd src
 $ python InCOVID.py
 ```
 
