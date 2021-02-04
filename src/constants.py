@@ -1,6 +1,5 @@
 BigFontName = ("Arial bold", 19)
 fontName = ("Arial", 13)
-fontNameSecondVersion = ("Arial", 12)
 buttonFontName = ("Arial", 14)
 scrollFontBig = ("Arial bold", 12)
 scrollFontSmall = ("Arial", 11)
@@ -8,3 +7,4 @@ colors = ("yellow", "red")
 labelCondition = ['Healthy person', 'Infected person']
 explode = (0, 0.15)
 wedgeProp = {'linewidth': 1}
+frameN = 800

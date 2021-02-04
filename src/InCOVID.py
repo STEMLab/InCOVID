@@ -1,24 +1,22 @@
 import tkinter
-from tkinter import *
-import tkinter.filedialog
 import iso8601 as iso8601
-from matplotlib.backends.backend_tkagg import (
-    FigureCanvasTkAgg, NavigationToolbar2Tk)
+from matplotlib.backends.backend_tkagg import (FigureCanvasTkAgg, NavigationToolbar2Tk)
 from matplotlib.figure import Figure
 from mpl_toolkits.mplot3d.art3d import Poly3DCollection
-from tkinter import Tk, Label, Entry, StringVar
 from mpl_toolkits.mplot3d import Axes3D
 from matplotlib.animation import FuncAnimation
 import time
-import numpy as np
 import matplotlib.pyplot as plt
-from src import constants, csvReader, gmlParser
+from src import csvReader
+from src.constants import *
+from src.gmlParser import *
 from shapely.geometry import Point
 import threading
 
 humans = []
 infectionCase = []
 floorChanger = 1
+infectedHumanNumber = 0
 
 # function for updating the values and the percentage in the pie chart
 def updaterOfValuesAndPercentage(this, thisValues):
@@ -36,7 +34,7 @@ def update(ct, timeArray, infectedHumanNumber,healthPersonNumber):
         axPie.clear()
         dataProportion = np.array([healthPersonNumber, infectedHumanNumber])
         axPie.pie(dataProportion, autopct=lambda val: updaterOfValuesAndPercentage(val, dataProportion),
-                  explode=constants.explode, labels=constants.labelCondition, shadow=True, colors=constants.colors)
+                  explode=explode, labels=labelCondition, shadow=True, colors=colors)
         c.set_xlabel("Time")
         c.set_ylabel("Infected people")
         var2.set("Number of infected people: "+str(infectedHumanNumber))
@@ -56,7 +54,7 @@ def drawerByFloor(floorN):
     floorChanger = floorN
     fig2D.suptitle("Floor "+str(floorN)+":", fontsize=12)
     # drawing the rooms and corridors 2D
-    for myobject in gmlParser.gmlObjects_3D:
+    for myobject in gmlObjects_3D:
         if myobject.floor==floorN:
             for i in (range(len(myobject.allPos)-1)):
                  temp = [myobject.allPos[i][0], myobject.allPos[i][1], myobject.allPos[i][2]]
@@ -64,7 +62,7 @@ def drawerByFloor(floorN):
             allObjects2D.append(allPoints2D)
             allPoints2D = []
     # drawing the doors 2D
-    for myobject in gmlParser.gmlObjectsDoors_3D:
+    for myobject in gmlObjectsDoors_3D:
       if myobject.floor == floorN:
         for i in (range(len(myobject.allPos) - 1)):
             temp = [myobject.allPos[i][0], myobject.allPos[i][1], myobject.allPos[i][2]]
@@ -127,7 +125,6 @@ def updatingTheAnimation2D(t):
     outputSecond = [h.scatter for h in tempList]
     return outputSecond
 
-
 # method used in order to find the path of the GML file
 def path(entryPath):
         f = tkinter.filedialog.askopenfilename(
@@ -137,7 +134,6 @@ def path(entryPath):
                        ('xml files', '.xml')]
         )
         entryPath.set(str(f))
-
 
 # method used in order to find the path of movement data made by SIMGen
 def pathSIMOGen(entryPath):
@@ -179,7 +175,6 @@ class Person:
         self.healthy = False
         self.scatter, = ax.plot([], [], [], color='red', label='Infected person', marker='o',
                                 markeredgecolor='black', markeredgewidth=0.5, markersize=5, animated=True)
-
 
     def startmovement(self):
         if self.isMoving==False:
@@ -243,7 +238,7 @@ class Person:
 
     def checker(self):
             p = Point(self.path[self.pathCounter][0], self.path[self.pathCounter][1])
-            for myobject in gmlParser.gmlObjects_3D:
+            for myobject in gmlObjects_3D:
                 # checking current room number where the person now is located
                 if myobject.poly.contains(p):
                     self.roomNumber = myobject.objectID
@@ -266,7 +261,7 @@ class Person:
         ct.append(infectedHumanNumber)
         timeArray.append(intTime)
         newCase = str(eachH.humanID) + "  |  " + str(round(intTime, 2))
-        tkinter.Label(frameNew, font=constants.scrollFontSmall, text=newCase).pack()
+        tkinter.Label(frameNew, font=scrollFontSmall, text=newCase).pack()
         healthyHumanNumber = HumanCount - infectedHumanNumber
         update(ct, timeArray, infectedHumanNumber,healthyHumanNumber)
 
@@ -365,7 +360,7 @@ def open_window(pathGML, pathSIMOGenMovData,numberOfInfected,percentageInfection
     top.title("Virus propagation model")
     top.geometry("300x300+120+120")
     top.attributes('-fullscreen', True)
-    button1 = Button(top, text="Close", font = constants.fontNameSecondVersion, command=lambda top=top: closeFunction())
+    button1 = Button(top, text="Close", font = fontName, command=lambda top=top: closeFunction())
     button1.pack(padx=10,pady=10)
 
     global ax,fig,fig2D,ax2D
@@ -382,23 +377,10 @@ def open_window(pathGML, pathSIMOGenMovData,numberOfInfected,percentageInfection
     # scaling by 1/150
     spreadDistance = spreadDistance/150
     # parsing indoor gml data
-    gmlFloors = gmlParser.myGML_3D(pathGML.get())
+    gmlFloors = myGML_3D(pathGML.get())
     # parsing movement data created from SIMOGen program
     fromCSV, idWithCoord, id_arr = csvReader.gettingData(pathSIMOGenMovData.get())
-    for eachObject in gmlParser.gmlObjects_MIN_MAX_3D:
-        print("highest X:")
-        print(eachObject.max_X)
-        print("highest Y:")
-        print(eachObject.max_Y)
-        print("highest Z:")
-        print(eachObject.max_Z)
-        print("--------------------")
-        print("lowest X:")
-        print(eachObject.min_X)
-        print("lowest Y:")
-        print(eachObject.min_Y)
-        print("lowest Z:")
-        print(eachObject.min_Z)
+
 
     global canvas1,frame_top,canvas,canvas2D,frameNew
     canvas1 = tkinter.Canvas(top, highlightbackground="black", highlightcolor="black", highlightthickness=1)
@@ -437,17 +419,16 @@ def open_window(pathGML, pathSIMOGenMovData,numberOfInfected,percentageInfection
                 updatedEndTime = iso8601.parse_date(idWithCoord[i][5])
                 h.startT.append(updatedStartTime)
                 h.endT.append(updatedEndTime)
-    # adding the size of the path to each person
-    for human in humans:
-        human.pathSize = int(len(human.path))
-    infectedHumanNumber = 0
     timeStartAll = []
-    for human in humans:
-        timeStartAll.append(human.startT[0])
+    # adding the size of the path to each person
+    for i,h in enumerate(humans):
+        h.pathSize = int(len(h.path))
+        timeStartAll.append(h.startT[0])
+
     startOfMovementTime = min(timeStartAll)
-    for human in humans:
-        difference = human.startT[0] - startOfMovementTime
-        human.waitingTime = difference.seconds
+    for h in humans:
+        difference = h.startT[0] - startOfMovementTime
+        h.waitingTime = difference.seconds
     secondFrame = tkinter.Frame(frame_top,highlightbackground="black", highlightcolor="black", highlightthickness=1)
     canvasScroll = tkinter.Canvas(secondFrame)
     scrollbar = tkinter.Scrollbar(secondFrame, orient="vertical", command=canvasScroll.yview)
@@ -460,20 +441,20 @@ def open_window(pathGML, pathSIMOGenMovData,numberOfInfected,percentageInfection
     )
     canvasScroll.create_window((0, 0), window=frameNew, anchor="nw")
     canvasScroll.configure(yscrollcommand=scrollbar.set)
-    tkinter.Label(frameNew, font=constants.scrollFontBig, text="Person id  |  Infection time").pack()
-    tkinter.Label(frameNew, font=constants.scrollFontBig, text="--------------------------------------").pack()
+    tkinter.Label(frameNew, font=scrollFontBig, text="Person id  |  Infection time").pack()
+    tkinter.Label(frameNew, font=scrollFontBig, text="--------------------------------------").pack()
     numberInfectedFromEntry = int(numberOfInfected.get())
     for i in range(numberInfectedFromEntry):
         humans[i].makeInfected()
         initalCase = str(humans[i].humanID) + "  |  " + str(0.00)
-        tkinter.Label(frameNew, font = constants.scrollFontSmall, text=initalCase).pack()
+        tkinter.Label(frameNew, font = scrollFontSmall, text=initalCase).pack()
         infectedHumanNumber = infectedHumanNumber + 1
     healthyHumanNumber = HumanCount - infectedHumanNumber
     secondFrame.pack(padx=5,pady=5)
     canvasScroll.pack(side="left", fill="both", expand=True)
     scrollbar.pack(side="right", fill="y")
     thirdFrame = tkinter.Frame(frame_top, highlightbackground="black", highlightcolor="black", highlightthickness=1)
-    tkinter.Label(thirdFrame, font=constants.scrollFontBig, text="Infection case coordinates in each floor").pack(padx=3, pady=3)
+    tkinter.Label(thirdFrame, font=scrollFontBig, text="Infection case coordinates in each floor").pack(padx=3, pady=3)
     canvas2D = FigureCanvasTkAgg(fig2D, master=thirdFrame)
     thirdFrame.pack(padx=5, pady=5)
     canvas2D.get_tk_widget().pack(side="bottom",expand=True,padx=5,pady=10)
@@ -481,19 +462,19 @@ def open_window(pathGML, pathSIMOGenMovData,numberOfInfected,percentageInfection
     canvas2D.mpl_connect('button_release_event', ax2D.axes._button_release)
     canvas2D.mpl_connect('motion_notify_event', ax2D.axes._on_move)
     floorNumber = 1
-    button1F = tkinter.Button(thirdFrame, text="1st Floor", font=constants.fontName, command=lambda floorNumber=floorNumber:drawerByFloor(floorNumber))
+    button1F = tkinter.Button(thirdFrame, text="1st Floor", font=fontName, command=lambda floorNumber=floorNumber:drawerByFloor(floorNumber))
     button1F.pack(padx=10, pady=1, side="left")
     if 2 in gmlFloors:
         floorNumber = 2
-        button2F = tkinter.Button(thirdFrame, text="2nd Floor", font=constants.fontName, command=lambda floorNumber=floorNumber:drawerByFloor(floorNumber))
+        button2F = tkinter.Button(thirdFrame, text="2nd Floor", font=fontName, command=lambda floorNumber=floorNumber:drawerByFloor(floorNumber))
         button2F.pack(padx=10, pady=1, side="left")
     if 3 in gmlFloors:
         floorNumber = 3
-        button3F = tkinter.Button(thirdFrame, text="3nd Floor", font=constants.fontName, command=lambda floorNumber=floorNumber:drawerByFloor(floorNumber))
+        button3F = tkinter.Button(thirdFrame, text="3nd Floor", font=fontName, command=lambda floorNumber=floorNumber:drawerByFloor(floorNumber))
         button3F.pack(padx=10, pady=1, side="left")
     if 4 in gmlFloors:
         floorNumber = 4
-        button4F = tkinter.Button(thirdFrame, text="4th Floor", font=constants.fontName, command=lambda floorNumber=floorNumber:drawerByFloor(floorNumber))
+        button4F = tkinter.Button(thirdFrame, text="4th Floor", font=fontName, command=lambda floorNumber=floorNumber:drawerByFloor(floorNumber))
         button4F.pack(padx=10, pady=1, side="left")
     global ct,timeArray
     ct = [infectedHumanNumber]
@@ -512,29 +493,26 @@ def open_window(pathGML, pathSIMOGenMovData,numberOfInfected,percentageInfection
     dataProportion = np.array([healthyHumanNumber, infectedHumanNumber])
     # Creating pie
     myPie, axPie = plt.subplots(figsize=(6, 6))
-    axPie.pie(dataProportion, autopct = lambda val: updaterOfValuesAndPercentage(val, dataProportion), explode=constants.explode, labels=constants.labelCondition, shadow = True, colors = constants.colors, wedgeprops = constants.wedgeProp)
-    # setting the dimesions of the matplot 3D
-    xVal = eachObject.max_X
-    ax.set_xlim3d([0.0, xVal])
-    ax.set_xlabel('X')
-    yVal = eachObject.max_Y*2
-    ax.set_ylim3d([-10.0,yVal])
-    ax.set_ylabel('Y')
-    zVal = eachObject.max_Z*5
-    ax.set_zlim3d([-10.0, zVal])
-    ax.set_zlabel('Z')
-    # setting the dimesions of the matplot 2D
-    xVal2d = eachObject.max_X
-    ax2D.set_xlim3d([0.0, xVal2d])
-    ax2D.set_xlabel('X')
-    yVal2d = eachObject.max_Y*2
-    ax2D.set_ylim3d([-10.0,yVal2d])
-    ax2D.set_ylabel('Y')
-    zVal2d = eachObject.max_Z*5
-    ax2D.set_zlim3d([-10.0, zVal2d])
-    ax2D.set_zlabel('Z')
+    axPie.pie(dataProportion, autopct = lambda val: updaterOfValuesAndPercentage(val, dataProportion), explode=explode, labels=labelCondition, shadow = True, colors = colors, wedgeprops = wedgeProp)
+
+    # setting the dimesions
+    ax.set_xlim3d([0.0, max(highAndLowX)])
+    ax.set_ylim3d([0.0,max(highAndLowY)])
+    ax.set_zlim3d([0.0, max(highAndLowZ)])
+    ax.set_box_aspect((max(highAndLowX), max(highAndLowY), max(highAndLowZ)))
+
+    ax2D.set_xlim3d([0.0, max(highAndLowX)])
+    ax2D.set_ylim3d([0.0,max(highAndLowY)])
+    ax2D.set_zlim3d([0.0, max(highAndLowZ)])
+    ax2D.set_box_aspect((max(highAndLowX), max(highAndLowY), max(highAndLowZ)))
+
+    try:
+        ax.set_aspect('equal')
+    except NotImplementedError:
+        pass
+
     # drawing the rooms and corridors
-    for myobject in gmlParser.gmlObjects_3D:
+    for ival,myobject in enumerate(gmlObjects_3D):
         for i in (range(len(myobject.allPos)-1)):
             temp = [myobject.allPos[i][0], myobject.allPos[i][1], myobject.allPos[i][2]]
             allPoints.append(temp)
@@ -542,7 +520,7 @@ def open_window(pathGML, pathSIMOGenMovData,numberOfInfected,percentageInfection
         allPoints = []
 
     # drawing the doors
-    for myobject in gmlParser.gmlObjectsDoors_3D:
+    for ival, myobject in enumerate(gmlObjectsDoors_3D):
         for i in (range(len(myobject.allPos) - 1)):
             temp = [myobject.allPos[i][0], myobject.allPos[i][1], myobject.allPos[i][2]]
             allPointsDoors.append(temp)
@@ -555,7 +533,7 @@ def open_window(pathGML, pathSIMOGenMovData,numberOfInfected,percentageInfection
     allPoints2D_Doors=[]
     allObjects2D_Doors = []
     # drawing the rooms and corridors 2D
-    for myobject in gmlParser.gmlObjects_3D:
+    for ival,myobject in enumerate(gmlObjects_3D):
         if myobject.floor==1:
             for i in (range(len(myobject.allPos)-1)):
                  temp = [myobject.allPos[i][0], myobject.allPos[i][1], myobject.allPos[i][2]]
@@ -564,7 +542,7 @@ def open_window(pathGML, pathSIMOGenMovData,numberOfInfected,percentageInfection
             allPoints2D = []
 
     # drawing the doors
-    for myobject in gmlParser.gmlObjectsDoors_3D:
+    for ival,myobject in enumerate(gmlObjectsDoors_3D):
       if myobject.floor == 1:
         for i in (range(len(myobject.allPos) - 1)):
             temp = [myobject.allPos[i][0], myobject.allPos[i][1], myobject.allPos[i][2]]
@@ -600,67 +578,72 @@ def open_window(pathGML, pathSIMOGenMovData,numberOfInfected,percentageInfection
     ax.set_axis_off()
     ax2D.set_axis_off()
     ax2D.view_init(90)
-    # start movement at certain time
-    for h in humans:
-        h.startmovement()
-    # check the location of the human
-    for human in humans:
-        human.currentLoc()
 
-    # frames
-    N=800
+    # start movement at certain time
+    for i,h in enumerate(humans):
+            h.startmovement()
+
+    # check the location of the human
+    for i,h in enumerate(humans):
+        h.currentLoc()
+
+
     global anim,anim2D
-    anim = FuncAnimation(fig, updateALL, frames=N, interval=800/N, blit=True, repeat=True)
-    buttonPausingMov = tkinter.Button(frame_bottom, text="Pause simulation", bg='brown', fg='white', font=constants.fontName, command=lambda anim=anim:pauseAnimation(anim))
+    anim = FuncAnimation(fig, updateALL, frames=frameN, interval=1, blit=True, repeat=True)
+    buttonPausingMov = tkinter.Button(frame_bottom, text="Pause simulation", bg='brown', fg='white', font=fontName, command=lambda anim=anim:pauseAnimation(anim))
     buttonPausingMov.pack(padx=5, pady=5, side="left")
-    buttonStartingMov = tkinter.Button(frame_bottom, text="Continue simulation", bg='green', fg='white', font=constants.fontName, command=lambda anim=anim:continueAnimation(anim))
+    buttonStartingMov = tkinter.Button(frame_bottom, text="Continue simulation", bg='green', fg='white', font=fontName, command=lambda anim=anim:continueAnimation(anim))
     buttonStartingMov.pack(padx=5, pady=5, side="left")
     canvas.draw()
     canvas2D.draw()
 
-if __name__ == "__main__":
+def main():
+    global root
     root = Tk()
-    label = tkinter.Label(root, text="InCOVID", font=constants.BigFontName)
+    label = tkinter.Label(root, text="InCOVID", font=BigFontName)
     label.pack(padx=5, pady=20)
     entryPath = tkinter.StringVar()
-    entry = tkinter.Entry(root, textvariable=entryPath, font=constants.fontName)
+    entry = tkinter.Entry(root, textvariable=entryPath, font=fontName)
     entryPath.set("")
     entry.pack()
-    b1 = tkinter.Button(root, text='Select IndoorGML file (3D version)', font=constants.fontName, relief='raised',
+    b1 = tkinter.Button(root, text='Select IndoorGML file (3D version)', font=fontName, relief='raised',
                         command=lambda  entryPath=entryPath: path(entryPath))
     b1.pack(padx=20, pady=20)
     entryPathSIMOGenData = tkinter.StringVar()
-    entry2 = tkinter.Entry(root, textvariable=entryPathSIMOGenData, font=constants.fontName)
+    entry2 = tkinter.Entry(root, textvariable=entryPathSIMOGenData, font=fontName)
     entryPathSIMOGenData.set("")
     entry2.pack()
-    b2 = tkinter.Button(root, text='Select SIMOGen movement data', font=constants.fontName, relief='raised',
+    b2 = tkinter.Button(root, text='Select SIMOGen movement data', font=fontName, relief='raised',
                         command=lambda  entryPathSIMOGenData=entryPathSIMOGenData: pathSIMOGen(entryPathSIMOGenData))
     b2.pack(padx=20, pady=20)
     labelInfectedPeople = StringVar()
     labelInfectedPeople.set("Enter the initial number of infected people:")
-    labelinfected = Label(root, textvariable=labelInfectedPeople, font=constants.fontName, height=2)
+    labelinfected = Label(root, textvariable=labelInfectedPeople, font=fontName, height=2)
     labelinfected.pack()
     numberOfInfected = StringVar(None)
     numberOfInfected.set("3")
-    numInf = Entry(root, textvariable=numberOfInfected, font=constants.fontName, width=10)
+    numInf = Entry(root, textvariable=numberOfInfected, font=fontName, width=10)
     numInf.pack()
     labelInfectionPercentage = StringVar()
     labelInfectionPercentage.set("Enter the default infection rate:")
-    labelInfPercntg = Label(root, textvariable=labelInfectionPercentage, font=constants.fontName, height=2)
+    labelInfPercntg = Label(root, textvariable=labelInfectionPercentage, font=fontName, height=2)
     labelInfPercntg.pack()
     percentageInfection = StringVar(None)
     percentageInfection.set("0.9")
-    perInfec = Entry(root, textvariable=percentageInfection, font=constants.fontName, width=10)
+    perInfec = Entry(root, textvariable=percentageInfection, font=fontName, width=10)
     perInfec.pack()
     labelSpreadDistance = StringVar()
     labelSpreadDistance.set("Enter the threshold distance:")
-    labelD = Label(root, textvariable=labelSpreadDistance, font=constants.fontName, height=2)
+    labelD = Label(root, textvariable=labelSpreadDistance, font=fontName, height=2)
     labelD.pack()
     spreadD = StringVar(None)
     spreadD.set("2")
-    sD = Entry(root, textvariable=spreadD, font=constants.fontName, width=10)
+    sD = Entry(root, textvariable=spreadD, font=fontName, width=10)
     sD.pack()
-    bStart = Button(root, text="Start", font=constants.fontName, bg='blue', fg='white', command=lambda entryPath=entryPath, entryPathSIMOGenData=entryPathSIMOGenData, numberOfInfected=numberOfInfected, percentageInfection=percentageInfection, spreadD=spreadD:open_window(entryPath, entryPathSIMOGenData, numberOfInfected, percentageInfection, spreadD))
+    bStart = Button(root, text="Start", font=fontName, bg='blue', fg='white', command=lambda entryPath=entryPath, entryPathSIMOGenData=entryPathSIMOGenData, numberOfInfected=numberOfInfected, percentageInfection=percentageInfection, spreadD=spreadD:open_window(entryPath, entryPathSIMOGenData, numberOfInfected, percentageInfection, spreadD))
     bStart.pack(padx=30, pady=30)
     root.geometry("500x580+600+200")
     root.mainloop()
+
+if __name__ == "__main__":
+    main()

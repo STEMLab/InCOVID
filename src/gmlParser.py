@@ -1,20 +1,13 @@
-# libraries for reading gml file
 import xml.etree.ElementTree as ET
 from tkinter import *
 import numpy as np
-from shapely.geometry import Point, Polygon
+from shapely.geometry import Polygon
 
-####################################  GMLOBJ_MIN_MAX_3D CLASS #####################################
-class GMLOBJ_MIN_MAX_3D:
-    def __init__(self):
-        self.min_X = 0
-        self.max_X = 0
-        self.min_Y = 0
-        self.max_Y = 0
-        self.min_Z = 0
-        self.max_Z = 0
+highAndLowX = []
+highAndLowY = []
+highAndLowZ = []
 
-####################################  GMLOBJ_3D CLASS #####################################
+# GMLOBJ_3D class
 class GMLOBJ_3D:
     def __init__(self, objectID):
         # current position
@@ -25,7 +18,7 @@ class GMLOBJ_3D:
         self.points = []
         self.poly = 0
 
-####################################  GMLOBJ_DOORS_3D CLASS #####################################
+# GMLOBJ_DOORS_3D class
 class GMLOBJ_DOORS_3D:
     def __init__(self):
         # current position
@@ -33,30 +26,26 @@ class GMLOBJ_DOORS_3D:
         self.allPos = []
         self.floor = 0
 
-####################################  GMLOBJ_STAIR_3D CLASS #####################################
+# GMLOBJ_STAIR_3D class
 class GMLOBJ_STAIR_3D:
     def __init__(self):
         # current position
         self.sideNumber = 0
         self.allPos = []
 
-####################################  GMLOBJ_ELEVATOR_3D CLASS #####################################
+# GMLOBJ_ELEVATOR_3D class
 class GMLOBJ_ELEVATOR_3D:
     def __init__(self):
         # current position
         self.sideNumber = 0
         self.allPos = []
 
-####################################  GMLOBJ_TRANSITION CLASS #####################################
+# GMLOBJ_TRANSITION CLASS
 class GMLOBJ_TRANSITION:
     def __init__(self):
         # current position
         self.sideNumber = 0
         self.allPos = []
-
-highAndLowX = []
-highAndLowY = []
-highAndLowZ = []
 
 # defining arrays of object
 gmlObjects_MIN_MAX_3D = []
@@ -83,14 +72,7 @@ def myGML_3D(gmlFileName):
             highAndLowX.append(myTemp[0])
             highAndLowY.append(myTemp[1])
             highAndLowZ.append(myTemp[2])
-    newObjectThis = GMLOBJ_MIN_MAX_3D()
-    newObjectThis.min_X = min(highAndLowX)
-    newObjectThis.max_X = max(highAndLowX)
-    newObjectThis.min_Y = min(highAndLowY)
-    newObjectThis.max_Y = max(highAndLowY)
-    newObjectThis.min_Z = min(highAndLowZ)
-    newObjectThis.max_Z = max(highAndLowZ)
-    gmlObjects_MIN_MAX_3D.append(newObjectThis)
+
 
     thisCoords =[]
 
