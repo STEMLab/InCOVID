@@ -1,0 +1,4 @@
+matplotlib==3.3.2
+Shapely==1.7.1
+numpy==1.19.2
+iso8601==0.1.13
