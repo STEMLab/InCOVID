@@ -52,26 +52,12 @@ def drawerByFloor(floorN):
     allObjects2D_Doors = []
     global floorChanger
     floorChanger = floorN
-    fig2D.suptitle("Floor "+str(floorN)+":", fontsize=12)
-    # drawing the rooms and corridors 2D
-    for myobjectval,myobject in enumerate(gmlObjects_3D):
-        if myobject.floor==floorN:
-            for ival,i in enumerate((range(len(myobject.allPos)-1))):
-                 temp = [myobject.allPos[i][0], myobject.allPos[i][1], myobject.allPos[i][2]]
-                 allPoints2D.append(temp)
-            allObjects2D.append(allPoints2D)
-            allPoints2D = []
-    # drawing the doors 2D
-    for myobjectval,myobject in enumerate(gmlObjectsDoors_3D):
-      if myobject.floor == floorN:
-        for ival,i in enumerate((range(len(myobject.allPos)-1))):
-            temp = [myobject.allPos[i][0], myobject.allPos[i][1], myobject.allPos[i][2]]
-            allPoints2D_Doors.append(temp)
-        allObjects2D_Doors.append(allPoints2D_Doors)
-        allPoints2D_Doors = []
-    thisIndoor2D = ax2D.add_collection3d(Poly3DCollection(allObjects2D,edgecolors='k', alpha=0.7,linewidth=1))
-    thisIndoorDoors2D = ax2D.add_collection3d(Poly3DCollection(allObjects2D_Doors, facecolors='y', edgecolors='y',alpha=0.7, linewidth=1))
-    ax2D.view_init(90)
+    fig2D.suptitle("Floor "+str(floorChanger)+":", fontsize=12)
+    alphaVal = 0.7
+    lineWidthVal = 1
+    alphaVal2 = 0.7
+    lineWidthVal2 = 1
+    drawer(ax2D, allPoints2D,allPoints2D_Doors, allObjects2D, allObjects2D_Doors, False, alphaVal,lineWidthVal,alphaVal2,lineWidthVal2,True,floorChanger)
 
 # Graph class
 # used for displaying graph
@@ -353,6 +339,59 @@ def closeFunction():
     top.destroy()
     root.destroy()
 
+# for visualization IndoorGML data
+def drawer(ax,allPoints,allPointsDoors,allObjects,allObjectsDoors,v3d,alphaVal,lineWidthVal,alphaVal2,lineWidthVal2,FloorCheck,floorN):
+    # drawing the rooms and corridors
+    for ival,myobject in enumerate(gmlObjects_3D):
+        if v3d==False:
+            if FloorCheck == True:
+                if myobject.floor == floorN:
+                    for ival2, i in enumerate((range(len(myobject.allPos) - 1))):
+                        temp = [myobject.allPos[i][0], myobject.allPos[i][1], myobject.allPos[i][2]]
+                        allPoints.append(temp)
+                    allObjects.append(allPoints)
+                    allPoints = []
+            elif FloorCheck == False:
+                if myobject.floor == 1:
+                    for ival2,i in enumerate((range(len(myobject.allPos)-1))):
+                        temp = [myobject.allPos[i][0], myobject.allPos[i][1], myobject.allPos[i][2]]
+                        allPoints.append(temp)
+                    allObjects.append(allPoints)
+                    allPoints = []
+        else:
+                for ival2,i in enumerate((range(len(myobject.allPos)-1))):
+                    temp = [myobject.allPos[i][0], myobject.allPos[i][1], myobject.allPos[i][2]]
+                    allPoints.append(temp)
+                allObjects.append(allPoints)
+                allPoints = []
+    # drawing the doors
+    for ival,myobject in enumerate(gmlObjectsDoors_3D):
+        if v3d==False:
+            if FloorCheck == True:
+                if myobject.floor == floorN:
+                    for ival2, i in enumerate((range(len(myobject.allPos) - 1))):
+                        temp = [myobject.allPos[i][0], myobject.allPos[i][1], myobject.allPos[i][2]]
+                        allPointsDoors.append(temp)
+                    allObjectsDoors.append(allPointsDoors)
+                    allPointsDoors = []
+            elif FloorCheck == False:
+                if myobject.floor == 1:
+                    for ival2,i in enumerate((range(len(myobject.allPos)-1))):
+                        temp = [myobject.allPos[i][0], myobject.allPos[i][1], myobject.allPos[i][2]]
+                        allPointsDoors.append(temp)
+                    allObjectsDoors.append(allPointsDoors)
+                    allPointsDoors = []
+        else:
+                for ival2,i in enumerate((range(len(myobject.allPos)-1))):
+                    temp = [myobject.allPos[i][0], myobject.allPos[i][1], myobject.allPos[i][2]]
+                    allPointsDoors.append(temp)
+                allObjectsDoors.append(allPointsDoors)
+                allPointsDoors = []
+
+    thisIndoor = ax.add_collection3d(Poly3DCollection(allObjects,edgecolors='k', alpha=alphaVal,linewidth=lineWidthVal))
+    thisIndoorDoors = ax.add_collection3d(Poly3DCollection(allObjectsDoors,facecolors='y',alpha=alphaVal2, linewidth=lineWidthVal2))
+
+
 # SECOND WINDOW
 def open_window(pathGML, pathSIMOGenMovData,numberOfInfected,percentageInfection,spreadD):
     global top
@@ -477,7 +516,6 @@ def open_window(pathGML, pathSIMOGenMovData,numberOfInfected,percentageInfection
     global ct,timeArray
     ct = [infectedHumanNumber]
     timeArray = [0]
-    # used to initialize the graph drawer
     global f, c
     f = plt.figure(figsize=(6, 4))
     c = f.add_subplot(1, 1, 1)
@@ -498,55 +536,18 @@ def open_window(pathGML, pathSIMOGenMovData,numberOfInfected,percentageInfection
     ax.set_ylim3d([0.0,max(highAndLowY)])
     ax.set_zlim3d([0.0, max(highAndLowZ)])
     ax.set_box_aspect((max(highAndLowX), max(highAndLowY), max(highAndLowZ)))
-
     ax2D.set_xlim3d([0.0, max(highAndLowX)])
     ax2D.set_ylim3d([0.0,max(highAndLowY)])
     ax2D.set_zlim3d([0.0, max(highAndLowZ)])
     ax2D.set_box_aspect((max(highAndLowX), max(highAndLowY), max(highAndLowZ)))
-
     try:
         ax.set_aspect('equal')
     except NotImplementedError:
         pass
-
-    # drawing the rooms and corridors
-    for ival,myobject in enumerate(gmlObjects_3D):
-        for ival2,i in enumerate((range(len(myobject.allPos)-1))):
-            temp = [myobject.allPos[i][0], myobject.allPos[i][1], myobject.allPos[i][2]]
-            allPoints.append(temp)
-        allObjects.append(allPoints)
-        allPoints = []
-
-    # drawing the doors
-    for ival, myobject in enumerate(gmlObjectsDoors_3D):
-        for ival2,i in enumerate((range(len(myobject.allPos) - 1))):
-            temp = [myobject.allPos[i][0], myobject.allPos[i][1], myobject.allPos[i][2]]
-            allPointsDoors.append(temp)
-        allObjectsDoors.append(allPointsDoors)
-        allPointsDoors = []
-
-    # default view of the first floor
     allPoints2D = []
     allObjects2D = []
     allPoints2D_Doors=[]
     allObjects2D_Doors = []
-    # drawing the rooms and corridors 2D
-    for ival,myobject in enumerate(gmlObjects_3D):
-        if myobject.floor==1:
-            for i in (range(len(myobject.allPos)-1)):
-                 temp = [myobject.allPos[i][0], myobject.allPos[i][1], myobject.allPos[i][2]]
-                 allPoints2D.append(temp)
-            allObjects2D.append(allPoints2D)
-            allPoints2D = []
-
-    # drawing the doors
-    for ival,myobject in enumerate(gmlObjectsDoors_3D):
-      if myobject.floor == 1:
-        for i in (range(len(myobject.allPos) - 1)):
-            temp = [myobject.allPos[i][0], myobject.allPos[i][1], myobject.allPos[i][2]]
-            allPoints2D_Doors.append(temp )
-        allObjects2D_Doors.append(allPoints2D_Doors)
-        allPoints2D_Doors = []
 
     global myTime,var1, var2, var3, label1, label2, label3
     myTime = time.time()
@@ -567,12 +568,18 @@ def open_window(pathGML, pathSIMOGenMovData,numberOfInfected,percentageInfection
     Graph(canvas1).pack(side="bottom",padx=10,pady=10)
     PieGraph(canvas1).pack(side="bottom",padx=10,pady=10)
 
-    # drawing 3D version
-    thisIndoor = ax.add_collection3d(Poly3DCollection(allObjects,edgecolors='k', alpha=0.1,linewidth=0.17))
-    thisIndoorDoors = ax.add_collection3d(Poly3DCollection(allObjectsDoors,facecolors='y',alpha=0.5, linewidth=0.5))
-    # drawing 2D version
-    thisIndoor2D = ax2D.add_collection3d(Poly3DCollection(allObjects2D,edgecolors='k', alpha=0.7,linewidth=1))
-    thisIndoorDoors2D = ax2D.add_collection3d(Poly3DCollection(allObjects2D_Doors, facecolors='y', edgecolors='y',alpha=0.7, linewidth=1))
+    alphaVal = 0.1
+    lineWidthVal = 0.17
+    alphaVal2 = 0.5
+    lineWidthVal2 = 1
+    drawer(ax, allPoints,allPointsDoors, allObjects, allObjectsDoors, True,alphaVal,lineWidthVal,alphaVal2,lineWidthVal2,False,0)
+
+    alphaVal = 0.7
+    lineWidthVal = 1
+    alphaVal2 = 0.7
+    lineWidthVal2 = 1
+    drawer(ax2D,allPoints2D,allPoints2D_Doors, allObjects2D, allObjects2D_Doors, False, alphaVal,lineWidthVal,alphaVal2,lineWidthVal2,False,0)
+
     ax.set_axis_off()
     ax2D.set_axis_off()
     ax2D.view_init(90)
@@ -584,7 +591,6 @@ def open_window(pathGML, pathSIMOGenMovData,numberOfInfected,percentageInfection
     # check the location of the human
     for i,h in enumerate(humans):
         h.currentLoc()
-
 
     global anim,anim2D
     anim = FuncAnimation(fig, updateALL, frames=frameN, interval=1, blit=True, repeat=True)
@@ -604,7 +610,7 @@ def main():
     entry = tkinter.Entry(root, textvariable=entryPath, font=fontName)
     entryPath.set("")
     entry.pack()
-    b1 = tkinter.Button(root, text='Select IndoorGML file (3D version)', font=fontName, relief='raised',
+    b1 = tkinter.Button(root, text='Select IndoorGML file', font=fontName, relief='raised',
                         command=lambda  entryPath=entryPath: path(entryPath))
     b1.pack(padx=20, pady=20)
     entryPathSIMOGenData = tkinter.StringVar()
@@ -619,7 +625,7 @@ def main():
     labelinfected = Label(root, textvariable=labelInfectedPeople, font=fontName, height=2)
     labelinfected.pack()
     numberOfInfected = StringVar(None)
-    numberOfInfected.set("3")
+    numberOfInfected.set("10")
     numInf = Entry(root, textvariable=numberOfInfected, font=fontName, width=10)
     numInf.pack()
     labelInfectionPercentage = StringVar()
@@ -627,7 +633,7 @@ def main():
     labelInfPercntg = Label(root, textvariable=labelInfectionPercentage, font=fontName, height=2)
     labelInfPercntg.pack()
     percentageInfection = StringVar(None)
-    percentageInfection.set("0.9")
+    percentageInfection.set("0.1")
     perInfec = Entry(root, textvariable=percentageInfection, font=fontName, width=10)
     perInfec.pack()
     labelSpreadDistance = StringVar()
