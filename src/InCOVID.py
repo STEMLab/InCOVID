@@ -7,7 +7,7 @@ from mpl_toolkits.mplot3d import Axes3D
 from matplotlib.animation import FuncAnimation
 import time
 import matplotlib.pyplot as plt
-from src import csvReader
+from src.csvReader import *
 from src.constants import *
 from src.gmlParser import *
 from shapely.geometry import Point
@@ -54,17 +54,17 @@ def drawerByFloor(floorN):
     floorChanger = floorN
     fig2D.suptitle("Floor "+str(floorN)+":", fontsize=12)
     # drawing the rooms and corridors 2D
-    for myobject in gmlObjects_3D:
+    for myobjectval,myobject in enumerate(gmlObjects_3D):
         if myobject.floor==floorN:
-            for i in (range(len(myobject.allPos)-1)):
+            for ival,i in enumerate((range(len(myobject.allPos)-1))):
                  temp = [myobject.allPos[i][0], myobject.allPos[i][1], myobject.allPos[i][2]]
                  allPoints2D.append(temp)
             allObjects2D.append(allPoints2D)
             allPoints2D = []
     # drawing the doors 2D
-    for myobject in gmlObjectsDoors_3D:
+    for myobjectval,myobject in enumerate(gmlObjectsDoors_3D):
       if myobject.floor == floorN:
-        for i in (range(len(myobject.allPos) - 1)):
+        for ival,i in enumerate((range(len(myobject.allPos)-1))):
             temp = [myobject.allPos[i][0], myobject.allPos[i][1], myobject.allPos[i][2]]
             allPoints2D_Doors.append(temp)
         allObjects2D_Doors.append(allPoints2D_Doors)
@@ -108,7 +108,7 @@ def updateALL(t):
 
 # used to animate the indoor gml and the update the movement of the people
 def updatingTheAnimation(t):
-    for h in humans:
+    for ival,h in enumerate(humans):
         if (h.pathSize > h.pathCounter):
                 h.moveOnPath()
                 h.infectionProcess()
@@ -118,11 +118,11 @@ def updatingTheAnimation(t):
 # update the scene of the infection in each floor
 def updatingTheAnimation2D(t):
     tempList = []
-    for h in infectionCase:
+    for hval,h in enumerate(infectionCase):
         if h.floorNumber == floorChanger:
             tempList.append(h)
             h.drawOnMap()
-    outputSecond = [h.scatter for h in tempList]
+    outputSecond = [h.scatter for i,h in enumerate(tempList)]
     return outputSecond
 
 # method used in order to find the path of the GML file
@@ -188,7 +188,7 @@ class Person:
             self.scatter, = ax.plot([], [], [], color='red', label='Infected person', marker='o',
                                     markeredgecolor='black', markeredgewidth=0.5, markersize=5, animated=True)
         elif self.healthy:
-            self.scatter, = ax.plot([], [], [], label='Healthy person', color='yellow', marker='o', markeredgecolor='black',
+            self.scatter, = ax.plot([], [], [], color='yellow', label='Healthy person', marker='o', markeredgecolor='black',
                                 markeredgewidth=0.5, markersize=5, animated=True)
         hand, labl = ax.get_legend_handles_labels()
         by_label = dict(zip(labl, hand))
@@ -238,7 +238,7 @@ class Person:
 
     def checker(self):
             p = Point(self.path[self.pathCounter][0], self.path[self.pathCounter][1])
-            for myobject in gmlObjects_3D:
+            for i, myobject in enumerate(gmlObjects_3D):
                 # checking current room number where the person now is located
                 if myobject.poly.contains(p):
                     self.roomNumber = myobject.objectID
@@ -269,7 +269,7 @@ class Person:
             # if the person is infected
             if self.isStoping is False and self.isMoving is True and self.infected is True:
                 # find the non-infected person
-                for eachH in humans:
+                for i, eachH in enumerate(humans):
                  if self.humanID != eachH.humanID:
                      if eachH.healthy == True and eachH.isStoping == False and eachH.isMoving == True:
                        if self.sameRoom(eachH):
@@ -333,7 +333,7 @@ class InfectionCase:
     def __init__(self):
         self.infectionCoordinates = []
         self.floorNumber = 1
-        self.scatter, = ax2D.plot([], [], [], label='Infection case',color='orange',marker = 'p',markeredgecolor = 'black',markeredgewidth=0.6, markersize=6, animated=True)
+        self.scatter, = ax2D.plot([], [], [], color='orange', label='Infection case', marker = 'p',markeredgecolor = 'black',markeredgewidth=0.6, markersize=6, animated=True)
         hand, labl = ax2D.get_legend_handles_labels()
         by_label = dict(zip(labl, hand))
         ax2D.legend(by_label.values(), by_label.keys())
@@ -378,9 +378,7 @@ def open_window(pathGML, pathSIMOGenMovData,numberOfInfected,percentageInfection
     spreadDistance = spreadDistance/150
     # parsing indoor gml data
     gmlFloors = myGML_3D(pathGML.get())
-    # parsing movement data created from SIMOGen program
-    fromCSV, idWithCoord, id_arr = csvReader.gettingData(pathSIMOGenMovData.get())
-
+    gettingData(pathSIMOGenMovData.get())
 
     global canvas1,frame_top,canvas,canvas2D,frameNew
     canvas1 = tkinter.Canvas(top, highlightbackground="black", highlightcolor="black", highlightthickness=1)
@@ -403,15 +401,15 @@ def open_window(pathGML, pathSIMOGenMovData,numberOfInfected,percentageInfection
     global HumanCount,infectedHumanNumber,healthyHumanNumber
     HumanCount = len(id_arr)
     # creating objects by assigning their id's from csv file
-    for i in np.arange(0, HumanCount):
+    for ival, i in enumerate(np.arange(0, HumanCount)):
         xyz = np.random.rand(1, 1)[0]
         v = np.random.rand(1, 1)[0] * 0.1
         regularHuman = Person(i, xyz, v, float(percentageInfection.get()))
         regularHuman.humanID = id_arr[i]
         humans.append(regularHuman)
     # adding path,start and end time to each person
-    for h in humans:
-        for i in range(len(idWithCoord)):
+    for ival,h in enumerate(humans):
+        for ival2,i in enumerate(range(len(idWithCoord))):
             if h.humanID == idWithCoord[i][0]:
                 temporary = [idWithCoord[i][1], idWithCoord[i][2], idWithCoord[i][3]+2.5]
                 h.path.append(temporary)
@@ -426,7 +424,7 @@ def open_window(pathGML, pathSIMOGenMovData,numberOfInfected,percentageInfection
         timeStartAll.append(h.startT[0])
 
     startOfMovementTime = min(timeStartAll)
-    for h in humans:
+    for i,h in enumerate(humans):
         difference = h.startT[0] - startOfMovementTime
         h.waitingTime = difference.seconds
     secondFrame = tkinter.Frame(frame_top,highlightbackground="black", highlightcolor="black", highlightthickness=1)
@@ -444,7 +442,7 @@ def open_window(pathGML, pathSIMOGenMovData,numberOfInfected,percentageInfection
     tkinter.Label(frameNew, font=scrollFontBig, text="Person id  |  Infection time").pack()
     tkinter.Label(frameNew, font=scrollFontBig, text="--------------------------------------").pack()
     numberInfectedFromEntry = int(numberOfInfected.get())
-    for i in range(numberInfectedFromEntry):
+    for ival,i in enumerate(range(numberInfectedFromEntry)):
         humans[i].makeInfected()
         initalCase = str(humans[i].humanID) + "  |  " + str(0.00)
         tkinter.Label(frameNew, font = scrollFontSmall, text=initalCase).pack()
@@ -513,7 +511,7 @@ def open_window(pathGML, pathSIMOGenMovData,numberOfInfected,percentageInfection
 
     # drawing the rooms and corridors
     for ival,myobject in enumerate(gmlObjects_3D):
-        for i in (range(len(myobject.allPos)-1)):
+        for ival2,i in enumerate((range(len(myobject.allPos)-1))):
             temp = [myobject.allPos[i][0], myobject.allPos[i][1], myobject.allPos[i][2]]
             allPoints.append(temp)
         allObjects.append(allPoints)
@@ -521,7 +519,7 @@ def open_window(pathGML, pathSIMOGenMovData,numberOfInfected,percentageInfection
 
     # drawing the doors
     for ival, myobject in enumerate(gmlObjectsDoors_3D):
-        for i in (range(len(myobject.allPos) - 1)):
+        for ival2,i in enumerate((range(len(myobject.allPos) - 1))):
             temp = [myobject.allPos[i][0], myobject.allPos[i][1], myobject.allPos[i][2]]
             allPointsDoors.append(temp)
         allObjectsDoors.append(allPointsDoors)

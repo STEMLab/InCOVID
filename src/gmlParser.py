@@ -67,7 +67,7 @@ def myGML_3D(gmlFileName):
     for envelope in root.findall(
             './/{http://www.opengis.net/gml/3.2}Polygon/{http://www.opengis.net/gml/3.2}exterior/{http://www.opengis.net/gml/3.2}LinearRing'):
         numTimes = 0
-        for i in envelope.getchildren():
+        for ival,i in enumerate(envelope.getchildren()):
             myTemp = [float(x) for x in i.text.split(' ')]
             highAndLowX.append(myTemp[0])
             highAndLowY.append(myTemp[1])
@@ -118,7 +118,7 @@ def myGML_3D(gmlFileName):
             intVar = int(re.search(r'\d+', str(newList[0])).group())
             floors.append(intVar)
     floorsUpdated = []
-    for x in floors:
+    for i,x in enumerate(floors):
         if x not in floorsUpdated:
             floorsUpdated.append(x)
 
@@ -131,7 +131,7 @@ def myGML_3D(gmlFileName):
             for b in envelope.findall('{http://www.opengis.net/gml/3.2}exterior/{http://www.opengis.net/gml/3.2}LinearRing'):
                     numTimes = 0
                     tempObject = GMLOBJ_DOORS_3D()
-                    for i in b.getchildren():
+                    for ival,i in enumerate(b.getchildren()):
                         numTimes += 1
                         myTemp = [float(x) for x in i.text.split(' ')]
                         if myTemp[2] == 0 and myTemp[2] <= 15:
@@ -152,7 +152,7 @@ def myGML_3D(gmlFileName):
             for b in envelope.findall('{http://www.opengis.net/gml/3.2}exterior/{http://www.opengis.net/gml/3.2}LinearRing'):
                     numTimes = 0
                     tempObject = GMLOBJ_ELEVATOR_3D()
-                    for i in b.getchildren():
+                    for ival,i in enumerate(b.getchildren()):
                         numTimes += 1
                         myTemp = [float(x) for x in i.text.split(' ')]
                         myTemp = [myTemp[0], myTemp[1], myTemp[2]]
@@ -165,7 +165,7 @@ def myGML_3D(gmlFileName):
             './/{http://www.opengis.net/indoorgml/1.0/core}Transition/{http://www.opengis.net/indoorgml/1.0/core}geometry/{http://www.opengis.net/gml/3.2}LineString'):
         numTimes = 0
         tempObject = GMLOBJ_TRANSITION()
-        for i in envelope.getchildren():
+        for ival,i in enumerate(envelope.getchildren()):
             numTimes += 1
             myTemp = [float(x) for x in i.text.split(' ')]
             myTemp = [myTemp[0], myTemp[1], myTemp[2]]
