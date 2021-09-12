@@ -20,7 +20,7 @@ humans = []
 infectionCase = []
 floorChanger = 1
 infectedHumanNumber = 0
-
+currentDay = 1
 
 #InfectionCase class
 class InfectionCase:
@@ -31,7 +31,6 @@ class InfectionCase:
         hand, labl = ax2D.get_legend_handles_labels()
         by_label = dict(zip(labl, hand))
         ax2D.legend(by_label.values(), by_label.keys())
-
     # for drawing
     def drawOnMap(self):
         tempVarX = np.float64(self.infectionCoordinates[0])
@@ -150,13 +149,20 @@ def updateALL(t):
 def animateinit():
     return [h.scatter for h in humans]
 
-
 # used to animate the indoor gml and the update the movement of the people
 def updatingTheAnimation(t):
+    global txt, currentDay
     for ival,h in enumerate(humans):
         if (h.pathSize > h.pathCounter):
                 h.moveOnPath()
                 # h.infectionProcess()
+        else:
+                h.stopMoving()
+    if all(h.isStoping == True for h in humans):
+        currentDay += 1
+        labelDay.set("Day: "+str(currentDay))
+        for ival, h in enumerate(humans):
+            h.restartmovement()
     outputFirst = [h.scatter for h in humans]
     return outputFirst
 
@@ -233,10 +239,15 @@ class Person:
         self.isStoping = True
         self.scatter.set_visible(False)
         #self.scatter, = ax.plot([], [], [], marker='', animated=False)
-        print("person" + self.humanID + " stop walking")
-
+        #print("person" + self.humanID + " stop walking")
         #self.scatter.remove()
         #humans.remove(self)
+
+    def restartmovement(self):
+        if self.isMoving==False and self.isStoping == True:
+            #ax.pause(self.waitingTime)
+            self.pathCounter = 0
+            self.makeMover()
 
 
     def onWhichFloor(self,currentZ):
@@ -450,13 +461,14 @@ class Menu(tkinter.Frame):
         top = tkinter.Toplevel()
         top.title("Virus propagation model")
         top.attributes('-fullscreen', True)
-        global ax, fig, fig2D, ax2D
+        global ax, fig, fig2D, ax2D, currentDay, labelDay
         fig = Figure(figsize=(7, 7), dpi=100, facecolor='#F0F0F0')
         ax = Axes3D(fig,auto_add_to_figure=False)
         fig.add_axes(ax)
-        fig2D = Figure(figsize=(5, 5), dpi=100, facecolor='#F0F0F0')
+        fig2D = Figure(figsize=(4.5, 4.5), dpi=100, facecolor='#F0F0F0')
         ax2D = Axes3D(fig2D,auto_add_to_figure=False)
         fig2D.add_axes(ax2D)
+        fig2D.suptitle("Floor " + str(floorChanger) + ":", fontsize=12)
         button1 = Button(top, text="Close", font=fontName, command=lambda self=self, controller = controller: self.closeFunction(controller))
         button1.pack(padx=10, pady=10)
         allPoints = []
@@ -475,15 +487,26 @@ class Menu(tkinter.Frame):
         canvas1 = tkinter.Canvas(top, highlightbackground="black", highlightcolor="black", highlightthickness=1)
         canvas1.pack(padx=20, pady=20, expand=True, fill="both", side="right")
         frame_top = tkinter.Frame(top, highlightbackground="black", highlightcolor="black", highlightthickness=1)
-        frame_top.pack(side="top", padx=20, pady=10)
+        frame_top.pack(side="top", padx=5, pady=5)
+
         varNew = StringVar()
-        labelNew = Label(frame_top, textvariable=varNew, font=('Arial', 14), relief=FLAT)
+        labelNew = Label(frame_top, textvariable=varNew, font=('Arial', 16), relief=FLAT)
         varNew.set("Virus propagation model in Indoor space")
-        labelNew.pack(side="top", padx=20, pady=10)
+        labelNew.pack(side="top", padx=10, pady=10)
+
+
+        labelDay = tkinter.StringVar()
+        labelDay.set("Day: "+str(currentDay))
+        main_label = tkinter.Label(frame_top, textvariable=labelDay, font=('Arial 14 bold'))
+        main_label.pack(side="top", padx=5, pady=10)
+        #main_label.place(x=0, y=0)
+
+
+
         frame_bottom = tkinter.Frame(frame_top)
-        frame_bottom.pack(side="bottom", padx=5, pady=10)
+        frame_bottom.pack(side="bottom", padx=5, pady=5)
         canvas = FigureCanvasTkAgg(fig, master=frame_top)
-        canvas.get_tk_widget().pack(side="left", padx=5, pady=10)
+        canvas.get_tk_widget().pack(side="left", padx=5, pady=5)
 
         canvas.mpl_connect('button_press_event', ax.axes._button_press)
         canvas.mpl_connect('button_release_event', ax.axes._button_release)
