@@ -2,6 +2,8 @@ import xml.etree.ElementTree as ET
 from tkinter import *
 import numpy as np
 from shapely.geometry import Polygon
+import matplotlib.path as mplPath
+import numpy as np
 
 
 floorsAndValues = {}
@@ -37,6 +39,19 @@ class GMLOBJ_3D_OBJECTS:
         self.locationVal = []
         self.floor = []
         self.numCases = 0
+        self.poly = 0
+        self.poly_path = []
+
+    # GMLOBJ_3D class
+class GMLOBJ_3D:
+    def __init__(self, objectID):
+        # current position
+        self.objectID = objectID
+        self.sideNumber = 0
+        self.allPos = []
+        # highest and lowest
+        self.floor = []
+        self.points = []
         self.poly = 0
 
 # GMLOBJ_DOORS_3D class
@@ -122,6 +137,7 @@ def myGML_3D(gmlFileName):
               key = a.attrib
               tempObject.id = key.get('{http://www.opengis.net/gml/3.2}id')
               thisCoords = []
+              newCoords = []
               for b in a.findall(
                         '{http://www.opengis.net/gml/3.2}exterior/{http://www.opengis.net/gml/3.2}Shell'):
                 numTimes = 0
@@ -134,8 +150,10 @@ def myGML_3D(gmlFileName):
                         z = np.float64(myTemp[2])
                         myTemp = [x, y, z]
                         thisTemp = (x, y)
+                        newTemp = [x,y]
                         thisCoords.append(thisTemp)
                         tempObject.allPos.append(myTemp)
+                        newCoords.append(newTemp)
                         zHighLow.append(z)
                     numTimes += 1
                 for k, v in floorsAndValues.items():
@@ -144,6 +162,8 @@ def myGML_3D(gmlFileName):
 
                 tempObject.sideNumber = int(numTimes)
                 tempObject.poly = Polygon(thisCoords)
+                tempObject.poly_path = mplPath.Path(np.array(newCoords))
+                newCoords = []
                 thisCoords = []
                 zHighLow = []
             GMLOBJ_3D_Objects.append(tempObject)
@@ -180,8 +200,6 @@ def myGML_3D(gmlFileName):
                     for k, v in floorsAndValues.items():
                         if max(zHighLow) <= (max(v)/2) and min(zHighLow) >= min(v):
                             tempObject.floor = k
-                            print("this is in the floor of door:")
-                            print(k)
                     tempObject.sideNumber = int(numTimes)
                     gmlObjectsDoors_3D.append(tempObject)
                     zHighLow = []
@@ -210,3 +228,8 @@ def myGML_3D(gmlFileName):
         tempObject.sideNumber = int(numTimes)
         gmlObjectsTransitions_3D.append(tempObject)
         object_id += 1
+
+
+
+
+

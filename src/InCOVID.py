@@ -13,29 +13,49 @@ import matplotlib.pyplot as plt
 from src.csvReader import *
 from src.constants import *
 from src.gmlParser import *
+import random
+
 from shapely.geometry import Point
 import threading
-
+beforeMovementhumans = []
 humans = []
+IncubationVal = 0
 infectionCase = []
 floorChanger = 1
 infectedHumanNumber = 0
 currentDay = 1
+meetingCase = []
 
-#InfectionCase class
-class InfectionCase:
+# shuffle the path and waiting time of each person
+def shuffleThePath():
+    humansCopy = humans.copy()
+    for ival,h in enumerate(humans):
+        randomHumanI = random.randint(0,len(humansCopy))
+        # id and other attributes will be the same, ONLY the path, path size, waiting time will change
+        h.path = humansCopy[randomHumanI].path
+        h.pathSize = humansCopy[randomHumanI].pathSize
+
+
+#Meeting class
+class Meeting:
     def __init__(self):
-        self.infectionCoordinates = []
+        self.id = 0
+        self.between = []
+        self.meetingCoordinates = []
         self.floorNumber = 1
-        self.scatter, = ax2D.plot([], [], [], color='orange', label='Infection case', marker = 'p',markeredgecolor = 'black',markeredgewidth=0.6, markersize=6, animated=True)
+        self.roomNumber = 0
+        self.day = 0
+        self.scatter, = ax2D.plot([], [], [], color='yellow', label='Meeting with infected person case', marker='p', markeredgecolor='black',
+                                  markeredgewidth=0.6, markersize=6, animated=True)
         hand, labl = ax2D.get_legend_handles_labels()
         by_label = dict(zip(labl, hand))
-        ax2D.legend(by_label.values(), by_label.keys())
+        ax2D.legend(by_label.values(), by_label.keys(),loc="lower center")
+
     # for drawing
     def drawOnMap(self):
-        tempVarX = np.float64(self.infectionCoordinates[0])
-        tempVarY = np.float64(self.infectionCoordinates[1])
-        tempVarZ = np.float64(self.infectionCoordinates[2])
+        tempVarX = np.float64(self.meetingCoordinates[0])
+        tempVarY = np.float64(self.meetingCoordinates[1])
+        tempVarZ = np.float64(self.meetingCoordinates[2])
         self.scatter.set_xdata(tempVarX)
         self.scatter.set_ydata(tempVarY)
         self.scatter.set_3d_properties(tempVarZ)
@@ -104,13 +124,10 @@ def update(ct, timeArray, infectedHumanNumber,healthPersonNumber):
         dataProportion = np.array([healthPersonNumber, infectedHumanNumber])
         axPie.pie(dataProportion, autopct=lambda val: updaterOfValuesAndPercentage(val, dataProportion),
                   explode=explode, labels=labelCondition, shadow=True, colors=colors)
-        c.set_xlabel("Time")
+        c.set_xlabel("Time (days)")
         c.set_ylabel("Infected people")
         var2.set("Number of infected people: "+str(infectedHumanNumber))
         label2.pack()
-        CurrentT = time.time()
-        var3.set("Time: " + str(round(CurrentT-myTime, 2)))
-        label3.pack(side="top",padx = 2, pady= 2)
 
 def drawerByFloor(floorN):
     ax2D.collections.pop()
@@ -133,7 +150,6 @@ class Graph(tkinter.Frame):
     def __init__(self, parent,param):
         tkinter.Frame.__init__(self, parent)
         canvas = FigureCanvasTkAgg(param, self)
-        canvas.draw()
         canvas.get_tk_widget().pack(side=tkinter.BOTTOM, fill=tkinter.BOTH, expand=True)
         toolbar = NavigationToolbar2Tk(canvas, self)
         toolbar.update()
@@ -142,6 +158,10 @@ class Graph(tkinter.Frame):
 
 # update all scenes
 def updateALL(t):
+    for ival, h in enumerate(beforeMovementhumans):
+        if (h.waitingTime/10 < t):
+            h.startmovement()
+            beforeMovementhumans.remove(h)
     first = updatingTheAnimation(t)
     second = updatingTheAnimation2D(t)
     return first+second
@@ -151,25 +171,28 @@ def animateinit():
 
 # used to animate the indoor gml and the update the movement of the people
 def updatingTheAnimation(t):
-    global txt, currentDay
+    global txt, currentDay, beforeMovementhumans
     for ival,h in enumerate(humans):
         if (h.pathSize > h.pathCounter):
                 h.moveOnPath()
-                # h.infectionProcess()
-        else:
-                h.stopMoving()
+                h.meetingProcess()
     if all(h.isStoping == True for h in humans):
         currentDay += 1
         labelDay.set("Day: "+str(currentDay))
         for ival, h in enumerate(humans):
+            if h.startInfection==True and h.alreadyInfected == False:
+                h.dayPassedAfterMeetingInfected+=1
+                h.InfectedDayChecker()
             h.restartmovement()
+        update(ct, timeArray, infectedHumanNumber, healthyHumanNumber)
+        beforeMovementhumans = humans.copy()
     outputFirst = [h.scatter for h in humans]
     return outputFirst
 
 # update the scene of the infection in each floor
 def updatingTheAnimation2D(t):
     tempList = []
-    for hval,h in enumerate(infectionCase):
+    for hval,h in enumerate(meetingCase):
         if h.floorNumber == floorChanger:
             tempList.append(h)
             h.drawOnMap()
@@ -193,32 +216,58 @@ class Person:
         self.path = []
         self.pathSize = 0
         self.pathCounter = 0
+        self.alreadyInfected = False
         self.infected = False
         self.healthy = True
         self.isMoving = False
         self.isStoping = False
-        self.increaser = 0
+        self.startInfection = False
+        self.personWhoInfected = 0
+        self.infectedDay = 0
+        self.dayPassedAfterMeetingInfected = 0
         self.startT = []
         self.endT = []
         self.waitingTime = 0.0
-        self.roomNumber = 0.0
+        self.roomNumber = 0
         self.defaultInfectionProbability = defaultInfectionPercentage
-        self.infectionCoordinates = []
+        self.meetingCoordinates = ()
+        self.meetingRoom = ""
+        self.meetingFloor = 0
         self.scatter, = ax.plot([], [], [], marker='', animated=True)
+
+    def makeInfectedByPerson(self):
+        self.startInfection = True
+
+    def InfectedDayChecker(self):
+        global infectedHumanNumber,healthyHumanNumber
+        global ct, timeArray
+        if self.startInfection is True and self.alreadyInfected is False and self.dayPassedAfterMeetingInfected >= IncubationVal:
+            self.makeInfected()
+            infectedHumanNumber = infectedHumanNumber + 1
+            ct.append(infectedHumanNumber)
+            healthyHumanNumber = HumanCount - infectedHumanNumber
+            timeArray.append(currentDay)
+            #update(ct, timeArray, infectedHumanNumber, healthyHumanNumber)
+
+            newCase = "Person " + "\n" + str(self.humanID) + "\nwas infected by" + "\nPerson " +str(self.personWhoInfected) + "\ncoordinate: " + str(self.meetingCoordinates)+"\nin room: " + str(self.meetingRoom) + "\n at floor: " + str(self.meetingFloor)  + "\n Day: " + str(currentDay)
+            colorText = "red"
+
+            tkinter.Label(frameNew, font=scrollFontSmall, text=newCase, fg=colorText).pack()
+            spaceAfter = "------------------------------------"
+            tkinter.Label(frameNew, font=scrollFontSmall, text=spaceAfter).pack()
+
+
 
     def makeInfected(self):
         self.infected = True
         self.healthy = False
+        self.alreadyInfected = True
         self.scatter, = ax.plot([], [], [], color='red', label='Infected person', marker='o',
                                 markeredgecolor='black', markeredgewidth=0.5, markersize=5, animated=True)
 
     def startmovement(self):
         if self.isMoving==False and self.isStoping == False:
-            #ax.pause(self.waitingTime)
             self.makeMover()
-            # start_time = threading.Timer(self.waitingTime, self.makeMover)
-            # start_time.start()
-            # pass
 
     def makeMover(self):
         self.isStoping = False
@@ -227,7 +276,7 @@ class Person:
             self.scatter, = ax.plot([], [], [], color='red', label='Infected person', marker='o',
                                     markeredgecolor='black', markeredgewidth=0.5, markersize=5, animated=True)
         elif self.healthy:
-            self.scatter, = ax.plot([], [], [], color='yellow', label='Healthy person', marker='o', markeredgecolor='black',
+            self.scatter, = ax.plot([], [], [], color='lime', label='Healthy person', marker='o', markeredgecolor='black',
                                 markeredgewidth=0.5, markersize=5, animated=True)
         hand, labl = ax.get_legend_handles_labels()
         by_label = dict(zip(labl, hand))
@@ -238,97 +287,67 @@ class Person:
         self.isMoving = False
         self.isStoping = True
         self.scatter.set_visible(False)
-        #self.scatter, = ax.plot([], [], [], marker='', animated=False)
-        #print("person" + self.humanID + " stop walking")
-        #self.scatter.remove()
-        #humans.remove(self)
 
     def restartmovement(self):
-        if self.isMoving==False and self.isStoping == True:
-            #ax.pause(self.waitingTime)
-            self.pathCounter = 0
-            self.makeMover()
-
+        self.pathCounter = 0
+        self.makeMover()
 
     def onWhichFloor(self,currentZ):
         for k, v in floorsAndValues.items():
             if currentZ<= max(v) and currentZ >= min(v):
                 return k
 
+    def checker(self):
+            currentPointLocation = (self.path[self.pathCounter][0], self.path[self.pathCounter][1])
+            for i, myobject in enumerate(GMLOBJ_3D_Objects):
+                # checking current room number where the person now is located
+                    if myobject.poly_path.contains_point(currentPointLocation):
+                        return myobject.id
+                    else:
+                        pass
 
-    # def sameRoom(self,eachH):
-    #     if(self.pathSize <= self.pathCounter):
-    #         self.pathCounter = self.pathSize - 1
-    #         self.increaser +=1
-    #     if(eachH.pathSize <= eachH.pathCounter):
-    #         eachH.pathCounter = eachH.pathSize - 1
-    #         eachH.increaser +=1
-    #     if (self.increaser == 1):
-    #               self.stopMoving()
-    #     if (eachH.increaser == 1):
-    #               eachH.stopMoving()
-    #     # checking if two person are in same floor
-    #     if self.path[self.pathCounter][2] == eachH.path[eachH.pathCounter][2]:
-    #         if self.roomNumber == eachH.roomNumber:
-    #                 return True
-    #         else:
-    #                 return False
-    #
-    # def currentLoc(self):
-    #         if self.isMoving is False:
-    #             pass
-    #         if self.isMoving is True and self.isStoping is False:
-    #             myTempThread = threading.Thread(target=self.checker, daemon=True)
-    #             myTempThread.start()
-    #
-    # def checker(self):
-    #         p = Point(self.path[self.pathCounter][0], self.path[self.pathCounter][1])
-    #         for i, myobject in enumerate(gmlObjects_3D):
-    #             # checking current room number where the person now is located
-    #             if myobject.poly.contains(p):
-    #                 self.roomNumber = myobject.objectID
 
-    def inCaseOfInfection(self,eachH):
-        global infectedHumanNumber,healthyHumanNumber
-        global ct, timeArray
-        eachH.makeInfected()
-        tempObject = InfectionCase()
-        tempObject.infectionCoordinates.append(eachH.path[eachH.pathCounter][0])
-        tempObject.infectionCoordinates.append(eachH.path[eachH.pathCounter][1])
-        tempObject.infectionCoordinates.append(eachH.path[eachH.pathCounter][2])
-        tempObject.floorNumber = int(eachH.onWhichFloor(eachH.path[eachH.pathCounter][2]))
-        infectionCase.append(tempObject)
-        tempL = eachH.path[eachH.pathCounter][0], eachH.path[eachH.pathCounter][1]
-        eachH.infectionCoordinates.append(tempL)
-        infectedHumanNumber = infectedHumanNumber + 1
-        later = time.time()
-        intTime = later - myTime
-        ct.append(infectedHumanNumber)
-        timeArray.append(intTime)
-        newCase = str(eachH.humanID) + "  |  " + str(round(intTime, 2))
-        tkinter.Label(frameNew, font=scrollFontSmall, text=newCase).pack()
-        healthyHumanNumber = HumanCount - infectedHumanNumber
-        update(ct, timeArray, infectedHumanNumber,healthyHumanNumber)
+    def inCaseOfMeeting(self,eachH):
+        # eachH.makeInfected()
+        tempObject = Meeting()
+        tempObject.meetingCoordinates.append(self.path[self.pathCounter][0])
+        tempObject.meetingCoordinates.append(self.path[self.pathCounter][1])
+        tempObject.meetingCoordinates.append(self.path[self.pathCounter][2])
+        tempObject.floorNumber = int(self.onWhichFloor(self.path[self.pathCounter][2]))
+        valueOfRoomNumber = self.checker()
+        tempObject.roomNumber = valueOfRoomNumber
+        meetingCase.append(tempObject)
+        tempL = (self.path[self.pathCounter][0], self.path[self.pathCounter][1])
+        eachH.meetingCoordinates = (tempL)
+        eachH.meetingRoom = valueOfRoomNumber
+        eachH.meetingFloor = int(self.onWhichFloor(self.path[self.pathCounter][2]))
+        newCase = "Infected person" + "\n"+ str(self.humanID) + "\nmet with\n"+ "Healthy person" + "\n"+ str(eachH.humanID) +"\ncoordinate: "+str(tempL) +"\nin room: " + str(tempObject.roomNumber) + "\n at floor: " + str(tempObject.floorNumber) + "\n Day: " +str(currentDay)
+        colorText = "darkgoldenrod"
 
-    def infectionProcess(self):
-            # if the person is infected
-            if self.isStoping is False and self.isMoving is True and self.infected is True:
-                # find the non-infected person
-                for i, eachH in enumerate(humans):
-                 if self.humanID != eachH.humanID:
-                     if eachH.healthy == True and eachH.isStoping == False and eachH.isMoving == True:
-                       # if self.sameRoom(eachH):
-                        # find the distance between them
-                        d = eachH.getD(self.path[self.pathCounter][0], self.path[self.pathCounter][1])
-                        # if the distance between two person is more than threshold distance, the probability of getting infected is ((default infection probability)/(distance between two Person objects^2))
-                        if d>spreadDistance:
-                            infectionDictanceP = (self.defaultInfectionProbability/d**2)
-                            if np.random.random() < infectionDictanceP:
-                                self.inCaseOfInfection(eachH)
-                        # if the distance between two person is less than threshold distance then default infection probability will be applied
-                        if d<=spreadDistance:
-                             if np.random.random() < self.defaultInfectionProbability:
-                                 self.inCaseOfInfection(eachH)
+        # with default infection probability the person is infected when meeting
+        if np.random.random() < self.defaultInfectionProbability:
+            eachH.makeInfectedByPerson()
+            eachH.infectedDay = currentDay
+            eachH.personWhoInfected = self.humanID
+
+
+        tkinter.Label(frameNew, font=scrollFontSmall, text=newCase, fg=colorText).pack()
+        spaceAfter = "------------------------------------"
+        tkinter.Label(frameNew, font=scrollFontSmall, text=spaceAfter).pack()
+
+
+    def meetingProcess(self):
+        # if the person is infected
+        if self.infected and self.isStoping is False and self.isMoving is True:
+            for i, eachH in enumerate(humans):
+                if self.humanID != eachH.humanID:
+                    if eachH.healthy and eachH.isStoping is False and eachH.isMoving is True:
+                        if self.onWhichFloor(self.path[self.pathCounter][2]) == eachH.onWhichFloor(eachH.path[eachH.pathCounter][2]):
+                            # find the distance between them
+                            d = eachH.getD(self.path[self.pathCounter][0], self.path[self.pathCounter][1])
+                            if d <= spreadDistance:
+                                self.inCaseOfMeeting(eachH)
+
 
     # method for checking is person infected
     def isInfected(self):
@@ -352,7 +371,10 @@ class Person:
             tempVarX = np.float64(self.path[self.pathCounter][0])
             tempVarY = np.float64(self.path[self.pathCounter][1])
             tempVarZ = np.float64(self.path[self.pathCounter][2])
-            self.pathCounter = self.pathCounter + 1
+            if self.pathCounter>=self.pathSize-1:
+                self.stopMoving()
+            else:
+                self.pathCounter = self.pathCounter + 1
             self.scatterZ(tempVarX,tempVarY,tempVarZ)
         else:
             self.scatter.set_visible(False)
@@ -382,7 +404,6 @@ class program(tkinter.Tk):
     def frames(self, j):
         frame = self.allFrames[j]
         frame.tkraise()
-
 
 # Menu page
 class Menu(tkinter.Frame):
@@ -428,12 +449,19 @@ class Menu(tkinter.Frame):
         spreadD.set("2")
         sD = tkinter.Entry(self, textvariable=spreadD, font=fontName, width=10)
         sD.grid()
-
+        labelIncubationPeriod = tkinter.StringVar()
+        labelIncubationPeriod.set("Enter incubation period(days):")
+        labelIP = tkinter.Label(self, textvariable=labelIncubationPeriod, font=fontName, height=2)
+        labelIP.grid()
+        IP = tkinter.StringVar(None)
+        IP.set("2")
+        IPentry = tkinter.Entry(self, textvariable=IP, font=fontName, width=10)
+        IPentry.grid()
         bStart = tkinter.Button(self, text="Start", font=fontName, bg='blue', fg='white',
                         command=lambda self=self, controller=controller,entryPath=entryPath, entryPathSIMOGenData=entryPathSIMOGenData,
                                        numberOfInfected=numberOfInfected, percentageInfection=percentageInfection,
-                                       spreadD=spreadD: self.new_window(controller, entryPath, entryPathSIMOGenData, numberOfInfected,
-                                                                    percentageInfection, spreadD))
+                                       spreadD=spreadD, IP=IP: self.new_window(controller, entryPath, entryPathSIMOGenData, numberOfInfected,
+                                                                    percentageInfection, spreadD,IP))
 
         bStart.grid(padx=30, pady=30)
 
@@ -446,8 +474,9 @@ class Menu(tkinter.Frame):
             entryPath.set(str(f))
 
     def closeFunction(self,controller):
-        global humans, infectionCase, floorChanger, infectedHumanNumber
+        global humans, infectionCase, floorChanger, infectedHumanNumber, beforeMovementhumans
         humans = []
+        beforeMovementhumans = []
         infectionCase = []
         floorChanger = 1
         infectedHumanNumber = 0
@@ -456,12 +485,12 @@ class Menu(tkinter.Frame):
         top.destroy()
         controller.frames(Menu)
 
-    def new_window(self, controller, pathGML, pathSIMOGenMovData,numberOfInfected,percentageInfection, spreadD):
+    def new_window(self, controller, pathGML, pathSIMOGenMovData,numberOfInfected,percentageInfection, spreadD,IP):
         global top
         top = tkinter.Toplevel()
         top.title("Virus propagation model")
         top.attributes('-fullscreen', True)
-        global ax, fig, fig2D, ax2D, currentDay, labelDay
+        global ax, fig, fig2D, ax2D, currentDay, labelDay, IncubationVal
         fig = Figure(figsize=(7, 7), dpi=100, facecolor='#F0F0F0')
         ax = Axes3D(fig,auto_add_to_figure=False)
         fig.add_axes(ax)
@@ -477,41 +506,32 @@ class Menu(tkinter.Frame):
         allObjectsDoors = []
         global spreadDistance
         spreadDistance = float(spreadD.get())
+        IncubationVal = int(IP.get())
         # scaling by 1/150
         spreadDistance = spreadDistance / 150
         # parsing indoor gml data
         myGML_3D(pathGML.get())
         gettingData(pathSIMOGenMovData.get())
-
         global canvas1, frame_top, canvas, canvas2D, frameNew
         canvas1 = tkinter.Canvas(top, highlightbackground="black", highlightcolor="black", highlightthickness=1)
         canvas1.pack(padx=20, pady=20, expand=True, fill="both", side="right")
         frame_top = tkinter.Frame(top, highlightbackground="black", highlightcolor="black", highlightthickness=1)
         frame_top.pack(side="top", padx=5, pady=5)
-
         varNew = StringVar()
         labelNew = Label(frame_top, textvariable=varNew, font=('Arial', 16), relief=FLAT)
         varNew.set("Virus propagation model in Indoor space")
         labelNew.pack(side="top", padx=10, pady=10)
-
-
         labelDay = tkinter.StringVar()
         labelDay.set("Day: "+str(currentDay))
         main_label = tkinter.Label(frame_top, textvariable=labelDay, font=('Arial 14 bold'))
         main_label.pack(side="top", padx=5, pady=10)
-        #main_label.place(x=0, y=0)
-
-
-
         frame_bottom = tkinter.Frame(frame_top)
         frame_bottom.pack(side="bottom", padx=5, pady=5)
         canvas = FigureCanvasTkAgg(fig, master=frame_top)
         canvas.get_tk_widget().pack(side="left", padx=5, pady=5)
-
         canvas.mpl_connect('button_press_event', ax.axes._button_press)
         canvas.mpl_connect('button_release_event', ax.axes._button_release)
         canvas.mpl_connect('motion_notify_event', ax.axes._on_move)
-
         global HumanCount, infectedHumanNumber, healthyHumanNumber
         HumanCount = len(id_arr)
         # creating objects by assigning their id's from csv file
@@ -521,6 +541,7 @@ class Menu(tkinter.Frame):
             regularHuman = Person(i, xyz, v, float(percentageInfection.get()))
             regularHuman.humanID = id_arr[i]
             humans.append(regularHuman)
+            beforeMovementhumans.append(regularHuman)
         # adding path,start and end time to each person
         for ival, h in enumerate(humans):
             for ival2, i in enumerate(range(len(idWithCoord))):
@@ -543,6 +564,9 @@ class Menu(tkinter.Frame):
             h.waitingTime = difference.seconds
         secondFrame = tkinter.Frame(frame_top, highlightbackground="black", highlightcolor="black",
                                     highlightthickness=1)
+
+
+
         canvasScroll = tkinter.Canvas(secondFrame)
         scrollbar = tkinter.Scrollbar(secondFrame, orient="vertical", command=canvasScroll.yview)
         frameNew = tkinter.Frame(canvasScroll)
@@ -552,14 +576,16 @@ class Menu(tkinter.Frame):
                 scrollregion=canvasScroll.bbox("all")
             )
         )
-        canvasScroll.create_window((0, 0), window=frameNew, anchor="nw")
+
+
+        canvasScroll.create_window((0, 0), window=frameNew)
         canvasScroll.configure(yscrollcommand=scrollbar.set)
-        tkinter.Label(frameNew, font=scrollFontBig, text="Person id  |  Infection time").pack()
-        tkinter.Label(frameNew, font=scrollFontBig, text="--------------------------------------").pack()
+        tkinter.Label(frameNew, font=scrollFontBig, text="Events log").pack()
+        tkinter.Label(frameNew, font=scrollFontBig, text="--------------------------").pack()
         numberInfectedFromEntry = int(numberOfInfected.get())
         for ival, i in enumerate(range(numberInfectedFromEntry)):
             humans[i].makeInfected()
-            initalCase = str(humans[i].humanID) + "  |  " + str(0.00)
+            initalCase = "Person " + str(humans[i].humanID) +  "\nis infected"
             tkinter.Label(frameNew, font=scrollFontSmall, text=initalCase).pack()
             infectedHumanNumber = infectedHumanNumber + 1
         healthyHumanNumber = HumanCount - infectedHumanNumber
@@ -579,9 +605,9 @@ class Menu(tkinter.Frame):
         for k, v in floorsAndValues.items():
             if k:
                 floorNumber = k
-                button1F = tkinter.Button(thirdFrame, text="Floor"+str(k), font=fontName,
+                buttonF = tkinter.Button(thirdFrame, text="Floor"+str(k), font=fontName,
                                           command=lambda floorNumber=floorNumber: drawerByFloor(floorNumber))
-                button1F.pack(padx=10, pady=1, side="left")
+                buttonF.pack(padx=10, pady=1, side="left")
 
         global ct, timeArray
         ct = [infectedHumanNumber]
@@ -593,8 +619,8 @@ class Menu(tkinter.Frame):
         caja = plt.Rectangle((0, 0), 100, 100, fill=True)
         cvst, = c.plot(infectedHumanNumber, color="red", label="Infected people")
         c.legend(handles=[cvst])
-        c.set_xlabel("Time")
-        c.set_ylabel("Infected people")
+        c.set_xlabel("Time (days)")
+        c.set_ylabel("New infections")
         global myPie, axPie
         dataProportion = np.array([healthyHumanNumber, infectedHumanNumber])
         # Creating pie
@@ -622,7 +648,9 @@ class Menu(tkinter.Frame):
         allObjects2D_Doors = []
 
         global myTime, var1, var2, var3, label1, label2, label3
-        myTime = time.time()
+        # myTime = time.time()
+
+
         var1 = StringVar()
         label1 = Label(canvas1, textvariable=var1, font=('Arial', 14), relief=FLAT)
         var1.set("Total number of people: " + str(HumanCount))
@@ -631,10 +659,6 @@ class Menu(tkinter.Frame):
         label2 = Label(canvas1, textvariable=var2, font=('Arial', 14), relief=FLAT)
         var2.set("Number of infected people: " + str(infectedHumanNumber))
         label2.pack(side="top", padx=5, pady=5)
-        var3 = StringVar()
-        label3 = Label(canvas1, textvariable=var3, font=('Arial', 14), relief=FLAT)
-        var3.set("Time: 0")
-        label3.pack(side="top", padx=5, pady=5)
         labelNew = Label(canvas1, justify='center')
         labelNew.pack()
         Graph(canvas1, f).pack(side="bottom", padx=10, pady=10)
@@ -652,26 +676,19 @@ class Menu(tkinter.Frame):
         alphaVal2 = 0.7
         drawer(ax2D, allPoints2D, allPoints2D_Doors, allObjects2D, allObjects2D_Doors, False, alphaVal, lineWidthVal,
                alphaVal2, lineWidthVal2, False, 0)
-
         ax.set_axis_off()
         ax2D.set_axis_off()
         ax2D.view_init(90)
-
-        # start movement at certain time
-        for i, h in enumerate(humans):
-            h.startmovement()
-
-        # # check the location of the human
-        # for i,h in enumerate(humans):
-        #     h.currentLoc()
 
         canvas.draw()
         canvas2D.draw()
 
         global anim, anim2D
+
+
+
         anim = FuncAnimation(fig, updateALL, frames=frameN, interval=0, blit=True, repeat=True)
 
-        ##fargs = (x, y, z, points)
 
         buttonPausingMov = tkinter.Button(frame_bottom, text="Pause simulation", bg='brown', fg='white', font=fontName,
                                           command=lambda anim=anim: pauseAnimation(anim))
