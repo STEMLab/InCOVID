@@ -38,7 +38,7 @@ $ python InCOVID.py
 ```
 
 ## Usage
-<img src="images/menu.png" alt="menu" width="300" height="400">
+<img src="images/menu.png" alt="menu" width="200" height="400">
 
 1) Push "Select IndoorGML file" button
 2) Select IndoorGML data file
