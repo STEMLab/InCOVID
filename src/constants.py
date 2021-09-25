@@ -7,4 +7,3 @@ colors = ("yellow", "red")
 labelCondition = ['Healthy person', 'Infected person']
 explode = (0, 0.15)
 wedgeProp = {'linewidth': 1}
-frameN = 800

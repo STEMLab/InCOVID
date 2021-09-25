@@ -38,16 +38,17 @@ $ python InCOVID.py
 ```
 
 ## Usage
-<img src="images/menu.png" alt="menu" width="300" height="400">
+<img src="images/menu.png" alt="menu" width="200" height="400">
 
-1) Push "Select IndoorGML data file(3D version)" button
+1) Push "Select IndoorGML file" button
 2) Select IndoorGML data file
 3) Push "Select SIMOGen movement data" button
 4) Select object movement data created using SIMOGen
 5) Enter initial number of infected people
 6) Enter the default infection rate
 7) Enter the threshold distance
-5) Push "Start" button
+8) Enter the incubation period(days)
+9) Push "Start" button
 
 ## Main Features
 - Visualization of virus propagation model in 3D
@@ -56,7 +57,12 @@ $ python InCOVID.py
 - Possibility to see infection case coordinates in the indoor space 
 
 ![virusPropagationModel](images/IndoorCOVID.png)
-   
+
+- Analyze each infection case more in detail
+- Network tree of infections
+
+![virusPropagationModel2](images/IndoorCOVID2.gif)
+
 ## Author
 
 | Name| E-mail | Affiliation |
