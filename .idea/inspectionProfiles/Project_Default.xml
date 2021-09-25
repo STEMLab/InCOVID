@@ -5,6 +5,7 @@
       <option name="ignoredIdentifiers">
         <list>
           <option value="main.tiny_3d_engine" />
+          <option value="sect.triangulation.to_triangulation_cls" />
         </list>
       </option>
     </inspection_tool>

@@ -1,25 +1,18 @@
 import xml.etree.ElementTree as ET
-from tkinter import *
-import numpy as np
-from shapely.geometry import Polygon
 import matplotlib.path as mplPath
 import numpy as np
-
 
 floorsAndValues = {}
 highAndLowX = []
 highAndLowY = []
 highAndLowZ = []
-# defining arrays of object
 floors = []
 GMLOBJ_3D_forFloors = []
 GMLOBJ_3D_Objects = []
 gmlObjectsDoors_3D = []
 gmlObjectsStairs_3D = []
 gmlObjectsElevators_3D = []
-gmlFloors_3D = []
 gmlObjectsTransitions_3D = []
-
 
 class GMLOBJ_3D_FORFLOORS:
     def __init__(self):
@@ -41,18 +34,6 @@ class GMLOBJ_3D_OBJECTS:
         self.numCases = 0
         self.poly = 0
         self.poly_path = []
-
-    # GMLOBJ_3D class
-class GMLOBJ_3D:
-    def __init__(self, objectID):
-        # current position
-        self.objectID = objectID
-        self.sideNumber = 0
-        self.allPos = []
-        # highest and lowest
-        self.floor = []
-        self.points = []
-        self.poly = 0
 
 # GMLOBJ_DOORS_3D class
 class GMLOBJ_DOORS_3D:
@@ -88,7 +69,6 @@ class GMLOBJ_TRANSITION:
 def myGML_3D(gmlFileName):
     tree = ET.parse(gmlFileName)
     root = tree.getroot()
-    object_id = 0
 
     # for finding the lowest and hightest value
     for envelope in root.findall(
@@ -103,7 +83,7 @@ def myGML_3D(gmlFileName):
 
     # for finding floors
     for envelope in root.findall(
-                './/{http://www.opengis.net/indoorgml/1.0/core}cellSpaceGeometry/{http://www.opengis.net/indoorgml/1.0/core}Geometry3D'):
+                './/{http://www.opengis.net/indoorgml/1.0/core}Geometry3D'):
             tempObject = GMLOBJ_3D_FORFLOORS()
             for a in envelope.findall('{http://www.opengis.net/gml/3.2}Solid'):
               key = a.attrib
@@ -125,12 +105,25 @@ def myGML_3D(gmlFileName):
     new_list = [x.floor for x in GMLOBJ_3D_forFloors]
     res = list(set(new_list))
     sortedRes = sorted(res, key=lambda tuple: tuple[1])
+    temp = [abs(abs(b) - abs(a)) for a, b in sortedRes]
+    maxDiff = max(temp)
+    newListFloors =[]
     for i in range(len(sortedRes)):
-        floorsAndValues[i + 1] = sortedRes[i]
+            newListFloors.append(sortedRes[i])
+    index = 0
+    for i in range(len(newListFloors)):
+            if min(newListFloors[i])==0:
+                index = i
+    for i in range(len(newListFloors)):
+            if min(newListFloors[i])>=0:
+                floorsAndValues[i-index+1] = newListFloors[i]
+            else:
+                diff = int(max(newListFloors[i])*2/maxDiff)
+                floorsAndValues[diff-1] = newListFloors[i]
 
     # OBJECTS
     for envelope in root.findall(
-                './/{http://www.opengis.net/indoorgml/1.0/core}cellSpaceGeometry/{http://www.opengis.net/indoorgml/1.0/core}Geometry3D'):
+                './/{http://www.opengis.net/indoorgml/1.0/core}Geometry3D'):
             tempObject = GMLOBJ_3D_OBJECTS()
 
             for a in envelope.findall('{http://www.opengis.net/gml/3.2}Solid'):
@@ -138,6 +131,7 @@ def myGML_3D(gmlFileName):
               tempObject.id = key.get('{http://www.opengis.net/gml/3.2}id')
               thisCoords = []
               newCoords = []
+              eachSide=[]
               for b in a.findall(
                         '{http://www.opengis.net/gml/3.2}exterior/{http://www.opengis.net/gml/3.2}Shell'):
                 numTimes = 0
@@ -155,40 +149,28 @@ def myGML_3D(gmlFileName):
                         tempObject.allPos.append(myTemp)
                         newCoords.append(newTemp)
                         zHighLow.append(z)
+                        eachSide.append(myTemp)
                     numTimes += 1
+                    tempObject.xyz.append(eachSide)
+                    eachSide = []
                 for k, v in floorsAndValues.items():
                     if max(zHighLow) <= max(v) and min(zHighLow) >= min(v):
                         tempObject.floor = k
-
                 tempObject.sideNumber = int(numTimes)
-                tempObject.poly = Polygon(thisCoords)
                 tempObject.poly_path = mplPath.Path(np.array(newCoords))
                 newCoords = []
                 thisCoords = []
                 zHighLow = []
             GMLOBJ_3D_Objects.append(tempObject)
 
-
-    # getting floors
-    for test in root.findall(
-            './/{http://www.opengis.net/indoorgml/1.0/core}cellSpaceBoundaryMember/{http://www.opengis.net/indoorgml/1.0/core}CellSpaceBoundary/{http://www.opengis.net/gml/3.2}description'):
-        temp = re.findall(r'[A-Za-z]+|\d+', str(test.text))
-        newList = [i for i in temp if i.isdigit()]
-        if (temp[0] != 'None'):
-            intVar = int(re.search(r'\d+', str(newList[0])).group())
-            floors.append(intVar)
-    floorsUpdated = []
-    for i,x in enumerate(floors):
-        if x not in floorsUpdated:
-            floorsUpdated.append(x)
-
+    # old indoorGML standard
     # for door and elevator
     for envelope in root.findall(
-            './/{http://www.opengis.net/indoorgml/1.0/core}geometry3D/{http://www.opengis.net/gml/3.2}Polygon'):
+            './/{http://www.opengis.net/indoorgml/1.0/core}CellSpaceBoundary'):
         key = envelope.attrib
         tempName = key.get('{http://www.opengis.net/gml/3.2}id')
         if "B" in tempName:
-            for b in envelope.findall('{http://www.opengis.net/gml/3.2}exterior/{http://www.opengis.net/gml/3.2}LinearRing'):
+            for b in envelope.findall('{http://www.opengis.net/indoorgml/1.0/core}geometry3D/{http://www.opengis.net/gml/3.2}Polygon/{http://www.opengis.net/gml/3.2}exterior/{http://www.opengis.net/gml/3.2}LinearRing'):
                     numTimes = 0
                     tempObject = GMLOBJ_DOORS_3D()
                     for ival,i in enumerate(b.getchildren()):
@@ -198,7 +180,7 @@ def myGML_3D(gmlFileName):
                         zHighLow.append(myTemp[2])
                         tempObject.allPos.append(myTemp)
                     for k, v in floorsAndValues.items():
-                        if max(zHighLow) <= (max(v)/2) and min(zHighLow) >= min(v):
+                        if max(zHighLow) <= max(v) and min(zHighLow) >= min(v):
                             tempObject.floor = k
                     tempObject.sideNumber = int(numTimes)
                     gmlObjectsDoors_3D.append(tempObject)
@@ -208,6 +190,43 @@ def myGML_3D(gmlFileName):
                     numTimes = 0
                     tempObject = GMLOBJ_ELEVATOR_3D()
                     for ival,i in enumerate(b.getchildren()):
+                        numTimes += 1
+                        myTemp = [float(x) for x in i.text.split(' ')]
+                        myTemp = [myTemp[0], myTemp[1], myTemp[2]]
+                        tempObject.allPos.append(myTemp)
+                    tempObject.sideNumber = int(numTimes)
+                    gmlObjectsElevators_3D.append(tempObject)
+
+    #new indoorGML standard
+    if(len(gmlObjectsDoors_3D)==0):
+        # for door and elevator
+        for envelope in root.findall(
+                './/{http://www.opengis.net/indoorgml/1.0/core}geometry3D/{http://www.opengis.net/gml/3.2}Polygon'):
+            key = envelope.attrib
+            tempName = key.get('{http://www.opengis.net/gml/3.2}id')
+            if "B" in tempName:
+                for b in envelope.findall(
+                        '{http://www.opengis.net/gml/3.2}exterior/{http://www.opengis.net/gml/3.2}LinearRing'):
+                    numTimes = 0
+                    tempObject = GMLOBJ_DOORS_3D()
+                    for ival, i in enumerate(b.getchildren()):
+                        numTimes += 1
+                        myTemp = [float(x) for x in i.text.split(' ')]
+                        myTemp = [myTemp[0], myTemp[1], myTemp[2]]
+                        zHighLow.append(myTemp[2])
+                        tempObject.allPos.append(myTemp)
+                    for k, v in floorsAndValues.items():
+                        if max(zHighLow) <= max(v) and min(zHighLow) >= min(v):
+                            tempObject.floor = k
+                    tempObject.sideNumber = int(numTimes)
+                    gmlObjectsDoors_3D.append(tempObject)
+                    zHighLow = []
+            if "Elevator" in tempName:
+                for b in envelope.findall(
+                        '{http://www.opengis.net/gml/3.2}exterior/{http://www.opengis.net/gml/3.2}LinearRing'):
+                    numTimes = 0
+                    tempObject = GMLOBJ_ELEVATOR_3D()
+                    for ival, i in enumerate(b.getchildren()):
                         numTimes += 1
                         myTemp = [float(x) for x in i.text.split(' ')]
                         myTemp = [myTemp[0], myTemp[1], myTemp[2]]
@@ -227,7 +246,6 @@ def myGML_3D(gmlFileName):
             tempObject.allPos.append(myTemp)
         tempObject.sideNumber = int(numTimes)
         gmlObjectsTransitions_3D.append(tempObject)
-        object_id += 1
 
 
 
