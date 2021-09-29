@@ -8,6 +8,9 @@ from mpl_toolkits.mplot3d.art3d import Poly3DCollection
 from mpl_toolkits.mplot3d import Axes3D
 from matplotlib.animation import FuncAnimation
 import matplotlib.pyplot as plt
+
+from src.InpReader import getData
+from src.MovingObject import MovingObject
 from src.csvReader import *
 from src.constants import *
 from src.gmlParser import *
@@ -649,7 +652,62 @@ class Menu(tkinter.Frame):
 
     # for generating data
     def generate(self, controller, pathGML, pathSIMOGenMovData,numberOfInfected,percentageInfection, spreadD,IP):
-        pass
+        print("start reading csv")
+        import time
+        now = time.time()
+        period, listDF = getData(pathSIMOGenMovData.get())
+        print("finished reading csv")
+        timeDiff = int(time.time() - now)
+        print("TIME SPENT:")
+        print(timeDiff)
+
+        print("length")
+        print(len(listDF))
+
+        print("between")
+        print(period)
+
+        print("start creating objects")
+        now = time.time()
+        for i,ival in enumerate(listDF):
+            if i <(len(listDF)):
+                listT = listDF[i].values.tolist()
+                # print(listT)
+                regularHuman = MovingObject(listT[0][0])
+                humans.append(regularHuman)
+#                print("===============")
+                i+=1
+            else:
+                pass
+        print(len(humans))
+        for i in humans:
+            print(i.id)
+        print("finished creating objects")
+        print("TIME SPENT:")
+        timeDiff = int(time.time() - now)
+        print(timeDiff)
+
+        #id_arr, startinitT, endfinalT, increasetime = getData(pathSIMOGenMovData.get())
+
+        # print("finished reading csv")
+        # time = int(time.time() - now)
+        # print(time)
+        # HumanCount = len(id_arr)
+        # # creating objects by assigning their id, path, start and end time to each person
+        # for ival, i in enumerate(np.arange(0, HumanCount)):
+        #     regularHuman = MovingObject(i)
+        #     regularHuman.id = id_arr[i]
+        #     humans.append(regularHuman)
+        #     # for ival2, i in enumerate(range(len(idWithCoord))):
+        #     #     if regularHuman.id == idWithCoord[i][0]:
+        #     #         temporary = [idWithCoord[i][1], idWithCoord[i][2], idWithCoord[i][3] + 2.5]
+        #     #         regularHuman.path.append(temporary)
+        #     #         regularHuman.startT.append(idWithCoord[i][4])
+        #     #         regularHuman.endT.append(idWithCoord[i][5])
+        #     # regularHuman.pathSize = int(len(regularHuman.path))
+        #     print("Moving object " + str(ival) +" created")
+
+        print("FINISH")
 
 
     # returns the path of file
