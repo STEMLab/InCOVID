@@ -632,12 +632,25 @@ class Menu(tkinter.Frame):
         IP.set("2")
         IPentry = tkinter.Entry(self, textvariable=IP, font=fontName, width=10)
         IPentry.grid()
-        bStart = tkinter.Button(self, text="Start", font=fontName, bg='blue', fg='white',
+
+        bGenerate = tkinter.Button(self, text="Generate", font=fontName, bg='green', fg='white',
+                        command=lambda self=self, controller=controller,entryPath=entryPath, entryPathSIMOGenData=entryPathSIMOGenData,
+                                       numberOfInfected=numberOfInfected, percentageInfection=percentageInfection,
+                                       spreadD=spreadD, IP=IP: self.generate(controller, entryPath, entryPathSIMOGenData, numberOfInfected,
+                                                                    percentageInfection, spreadD,IP))
+        bGenerate.grid(padx=30, pady=15)
+
+        bStart = tkinter.Button(self, text="Simulate", font=fontName, bg='blue', fg='white',
                         command=lambda self=self, controller=controller,entryPath=entryPath, entryPathSIMOGenData=entryPathSIMOGenData,
                                        numberOfInfected=numberOfInfected, percentageInfection=percentageInfection,
                                        spreadD=spreadD, IP=IP: self.new_window(controller, entryPath, entryPathSIMOGenData, numberOfInfected,
                                                                     percentageInfection, spreadD,IP))
-        bStart.grid(padx=30, pady=30)
+        bStart.grid(padx=30, pady=15)
+
+    # for generating data
+    def generate(self, controller, pathGML, pathSIMOGenMovData,numberOfInfected,percentageInfection, spreadD,IP):
+        pass
+
 
     # returns the path of file
     def path(self, entryPath, inputType):
@@ -655,10 +668,15 @@ class Menu(tkinter.Frame):
         infectionCase = []
         floorChanger = 1
         infectedHumanNumber = 0
-        ax.collections.pop()
-        ax2D.collections.pop()
+        if len(ax.collections)>0:
+            ax.collections.pop()
+            ax2D.collections.pop()
+        else:
+            pass
         top.destroy()
         controller.frames(Menu)
+
+
     # for creating new window
     def new_window(self, controller, pathGML, pathSIMOGenMovData,numberOfInfected,percentageInfection, spreadD,IP):
         global top, spreadDistance, frameNew, ax, fig, fig2D, ax2D, currentDay, labelDay, IncubationVal, currentTime, labelTime, timeIncreaser, var2, label2, HumanCount, infectedHumanNumber, healthyHumanNumber
