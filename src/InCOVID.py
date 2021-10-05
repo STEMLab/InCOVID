@@ -8,7 +8,6 @@ from mpl_toolkits.mplot3d.art3d import Poly3DCollection
 from mpl_toolkits.mplot3d import Axes3D
 from matplotlib.animation import FuncAnimation
 import matplotlib.pyplot as plt
-
 from src.InpReader import getData
 from src.MovingObject import MovingObject
 from src.csvReader import *
@@ -16,11 +15,15 @@ from src.constants import *
 from src.gmlParser import *
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
-from datetime import datetime, date, time, timedelta
 import numpy as np
 import networkx as nx
 import random
+from datetime import timedelta, datetime, date, time
 
+newObjectsList = []
+first = []
+notMovingOvbjectsList = []
+movingObjectsList = []
 sometime = time(8, 50)  # 8:50am
 newTime = time(8,50) # 8:50am
 globalTime = 0
@@ -33,6 +36,9 @@ currentDay = 1
 currentTime = 0
 timeIncreaser = 0
 meetingCase = []
+valX=[]
+valY=[]
+valZ=[]
 
 #Meeting class
 class Meeting:
@@ -164,42 +170,99 @@ class Graph(tkinter.Frame):
 
 # update all scenes
 def updateALL(t):
+
+    # ax.clear()
+    # if len(notMovingOvbjectsList) >= 0:
+    for i, ival in enumerate(notMovingOvbjectsList):
+            if ival.startTime == start_date:
+                ival.isMoving = True
+                ival.pathCounter = 0
+                movingObjectsList.append(ival)
+                # ival.startmovement()
+                notMovingOvbjectsList.remove(ival)
+
+
     global globalTime, currentTime, sometime, newTime
-    globalTime += 1
-    for ival, h in enumerate(humans):
-        if h.isMoving == False and globalTime == max(h.timeline):
-                h.startmovement()
-        else:
-                pass
-    if any(h.isMoving == True for h in humans):
-        newTime = (datetime.combine(date.today(), sometime) + timedelta(seconds=timeIncreaser/3)).time()
-        sometime = newTime
-        labelTime.set("Time: " + str(newTime.strftime("%H:%M:%S")))
-    first = updatingTheAnimation(t)
-    second = updatingTheAnimation2D(t)
-    return first+second
+    # globalTime += 1
+    # for ival, h in enumerate(humans):
+    #     if h.isMoving == False and globalTime == max(h.timeline):
+    #             h.startmovement()
+    #     else:
+    #             pass
+    newTime = (datetime.combine(date.today(), sometime) + timedelta(seconds=timeIncreaser)).time()
+    sometime = newTime
+    labelTime.set("Time: " + str(newTime.strftime("%H:%M:%S")))
+    first = updatingTheAnimation()
+
+
+
+    #second = updatingTheAnimation2D(t)
+    #return first+second
+    return first
 
 # used to animate movement of the people
-def updatingTheAnimation(t):
-    global txt, currentDay, globalTime, sometime, infectedHumanNumber, ct, timeArray, healthyHumanNumber
-    for ival,h in enumerate(humans):
-        if (h.pathSize > h.pathCounter and h.isMoving == True):
-                h.moveOnPath()
-                h.meetingProcess()
-    if all(h.isStoping == True for h in humans):
+def updatingTheAnimation():
+    global txt, currentDay, globalTime, sometime, infectedHumanNumber, ct, timeArray, healthyHumanNumber,start_date, notMovingOvbjectsList,valX,valY,valZ
+    # if len(movingObjectsList) >= 0:
+    for j, jval in enumerate(movingObjectsList):
+
+            # print("is moving")
+            # if jval.isInfected:
+            #     for i, eachH in enumerate(movingObjectsList):
+            #         if jval.humanID != eachH.humanID and eachH.isHealthy and eachH.metWithInfected == False:
+            #             jval.currentFloor = jval.onWhichFloor(jval.path[jval.pathCounter][2])
+            #             eachH.currentFloor = eachH.onWhichFloor(eachH.path[eachH.pathCounter][2])
+            #             # check whether moving objects at the same floor
+            #             if jval.currentFloor == eachH.currentFloor:
+            #                 valueOfRoomNumber = jval.checker()
+            #                 valueOfRoomNumber2 = eachH.checker()
+            #                 # check whether moving objects at the same cellspace
+            #                 if valueOfRoomNumber == valueOfRoomNumber2:
+            #                     # find the distance between them
+            #                     d = jval.getD(eachH.path[eachH.pathCounter][0],
+            #                                   eachH.path[eachH.pathCounter][1])
+            #                     if d <= spreadDistance:
+            #                         # print(d)
+            #                         # print("check if infection")
+            #                         eachH.metWithInfected = True
+
+            jval.pathCounter += 1
+            if (jval.pathCounter == len(jval.path)):
+                jval.isMoving = False
+                movingObjectsList.remove(jval)
+                # print("stop moving")
+                # print("number of moving objects left:")
+                # print(len(movingObjectsList))
+            else:
+                pass
+    else:
+        pass
+
+    # print("Time:")
+    # print(start_date)
+    start_date += delta
+
+    # for ival,h in enumerate(humans):
+    #     if (h.pathSize > h.iterator and h.isMoving == True):
+    #             h.moveOnPath()
+    #             h.meetingProcess()
+    if len(movingObjectsList)==0:
         currentDay += 1
         labelDay.set("Day: "+str(currentDay))
         sometime = time(8, 50)  # 8:50am
         labelTime.set("Time: " + str(sometime))
         update(ct, timeArray, infectedHumanNumber, healthyHumanNumber)
+        notMovingOvbjectsList = newObjectsList
         for ival, h in enumerate(humans):
             if h.startInfection==True and h.alreadyInfected == False:
                 h.dayPassedAfterMeetingInfected+=1
                 h.InfectedDayChecker()
-        for ival, h in enumerate(humans):
-            h.isStoping = False
         globalTime = 0
-    outputFirst = [h.scatter for h in humans]
+    # outputFirst = [h.scatter for h in movingObjectsList]
+    outputFirst = [h.moveOnPath() for h in movingObjectsList]
+
+
+
     return outputFirst
 
 # update the scene of the infection in each floor
@@ -316,7 +379,7 @@ def visualize():
         for i2, k2 in enumerate(humans):
             if humans[i].humanID != humans[i2].humanID:
                 for z, j in enumerate(meetingCase):
-                        if humans[i].humanID == j.between[0]  and humans[i2].humanID == j.between[1]:
+                        if humans[i].humanID == j.between[0] and humans[i2].humanID == j.between[1]:
                             edge1 = i
                             edge2 = i2
                             edgesList.append((edge1, edge2))
@@ -398,11 +461,19 @@ class Person:
         self.infected = False
         self.healthy = True
         self.isMoving = False
+        self.isInfected = False
+        self.isHealthy = True
+        self.metWithInfected = False
+        self.currentFloor = 1
+        self.currentRoom = ""
+        self.isMoving = False
         self.isStoping = False
         self.startInfection = False
         self.personWhoInfected = 0
         self.infectedDay = 0
         self.dayPassedAfterMeetingInfected = 0
+        self.startTime = 0
+        self.endTime = 0
         self.startT = []
         self.endT = []
         self.timeline = []
@@ -449,13 +520,13 @@ class Person:
             self.makeMover()
 
     # make the person move
-    def makeMover(self):
-        self.isStoping = False
-        self.isMoving = True
-        if self.infected:
+    def initialize(self):
+        self.isStoping = True
+        self.isMoving = False
+        if self.isInfected:
             self.scatter, = ax.plot([], [], [], color='red', label='Infected person', marker='o',
                                     markeredgecolor='black', markeredgewidth=0.5, markersize=4, animated=True)
-        elif self.healthy:
+        elif self.isHealthy:
             self.scatter, = ax.plot([], [], [], color='lime', label='Healthy person', marker='o', markeredgecolor='black',
                                 markeredgewidth=0.5, markersize=4, animated=True)
         hand, labl = ax.get_legend_handles_labels()
@@ -491,9 +562,9 @@ class Person:
             for i, eachH in enumerate(humans):
                 if self.humanID != eachH.humanID:
                     if eachH.healthy and eachH.isMoving is True:
-                        if self.onWhichFloor(self.path[self.pathCounter][2]) == eachH.onWhichFloor(eachH.path[eachH.pathCounter][2]):
+                        if self.onWhichFloor(self.path[self.pathCounter][2]) == eachH.onWhichFloor(eachH.path[eachH.iterator][2]):
                             # find the distance between them
-                            d = self.getD(eachH.path[eachH.pathCounter][0], eachH.path[eachH.pathCounter][1])
+                            d = self.getD(eachH.path[eachH.iterator][0], eachH.path[eachH.iterator][1])
                             if d <= spreadDistance*10:
                                 self.inCaseOfMeeting(eachH)
 
@@ -527,15 +598,15 @@ class Person:
 
 
 
-    # method for checking is person infected
-    def isInfected(self):
-        if self.infected:
-            return True
-
-    # method for checking is person is healthy
-    def isHealthy(self):
-        if self.healthy:
-            return True
+    # # method for checking is person infected
+    # def isInfected(self):
+    #     if self.infected:
+    #         return True
+    #
+    # # method for checking is person is healthy
+    # def isHealthy(self):
+    #     if self.healthy:
+    #         return True
 
     # distance between two person
     def getD(self, x, y):
@@ -545,23 +616,14 @@ class Person:
 
     # for moving on path
     def moveOnPath(self):
-        if self.isMoving:
             tempVarX = np.float64(self.path[self.pathCounter][0])
             tempVarY = np.float64(self.path[self.pathCounter][1])
             tempVarZ = np.float64(self.path[self.pathCounter][2])
-            if self.pathCounter>=self.pathSize-1:
-                self.stopMoving()
-            else:
-                self.pathCounter = self.pathCounter + 1
-            self.scatterZ(tempVarX,tempVarY,tempVarZ)
-        else:
-            self.scatter.set_visible(False)
+            self.scatter.set_xdata(tempVarX)
+            self.scatter.set_ydata(tempVarY)
+            self.scatter.set_3d_properties(tempVarZ)
+            return self.scatter
 
-    # scatter method
-    def scatterZ(self,tempVarX,tempVarY,tempVarZ):
-        self.scatter.set_xdata(tempVarX)
-        self.scatter.set_ydata(tempVarY)
-        self.scatter.set_3d_properties(tempVarZ)
 
 # program class
 class program(tkinter.Tk):
@@ -652,10 +714,15 @@ class Menu(tkinter.Frame):
 
     # for generating data
     def generate(self, controller, pathGML, pathSIMOGenMovData, numberOfInfected,percentageInfection, spreadD, IP):
+        print("Reading GML")
+        myGML_3D(pathGML.get())
+
         print("start reading csv")
         import time
         now = time.time()
-        listDF = getData(pathSIMOGenMovData.get())
+        listDF, timeStart, timeEnd, diff = getData(pathSIMOGenMovData.get())
+
+        spreadDistance = float(spreadD.get())
         print("finished reading csv")
         timeDiff = int(time.time() - now)
         print("TIME SPENT:")
@@ -670,25 +737,187 @@ class Menu(tkinter.Frame):
                 regularHuman = MovingObject(listT[0][0],listT[1][5])
                 regularHuman.startTime = datetime.strptime(listDF[i]['startTime'].values[0],"%Y-%m-%dT%H:%M:%SZ")
                 regularHuman.endTime = datetime.strptime(listDF[i]['startTime'].values[-1],"%Y-%m-%dT%H:%M:%SZ")
-                # regularHuman.startCoord =
-                del listT
+                regularHuman.path = listDF[i]['startCoord']
+                #regularHuman.path = listDF[i]['startCoord'].str.split(" ")
+                temp = listDF[i]['startCoord'].str.split(" ")
+                regularHuman.path = [[float(j) for j in i] for i in temp]
                 humans.append(regularHuman)
+                del listT
                 i+=1
             else:
                 pass
-        for i in humans:
-            print("Moving object")
-            print(i.id)
-            print("start time")
-            print(i.startTime)
-            print("end time")
-            print(i.endTime)
+        # for i in humans:
+        #     print("Moving object")
+        #     print(i.id)
+        #     print("start time")
+        #     print(i.startTime)
+        #     print("end time")
+        #     print(i.endTime)
+        #     print("path")
+        #     print(i.path)
         print("finished creating objects")
         print("TIME SPENT:")
         timeDiff = int(time.time() - now)
         print(timeDiff)
 
         print("FINISH")
+
+        print("start time min")
+        print(timeStart)
+        #print(min(humans, key=lambda x: x.startTime))
+
+        print("end time max")
+        print(timeEnd)
+        #print(max(humans, key=lambda x: x.endTime))
+        # print("human 1 movement")
+        start_date = timeStart
+        end_date = timeEnd
+        delta = timedelta(seconds=1)
+
+        print("Movement of first person")
+        i = 0
+
+        for i in range(int(numberOfInfected.get())):
+            humans[i].isInfected = True
+            print("make initial infected")
+
+        notMovingOvbjectsList = humans.copy()
+        movingObjectsList = []
+
+        import numpy as np
+
+        print("Moving process start")
+        now = time.time()
+
+        start_date2= start_date
+        location = []
+        while start_date2 <= end_date:
+            for i,ival in enumerate(humans):
+                if humans[i].startTime <=start_date2 and humans[i].endTime>=start_date2 and  humans[i].iterator2<=len(humans[i].path):
+                    x= humans[i].path[humans[i].iterator2][0]
+                    y= humans[i].path[humans[i].iterator2][1]
+                    z= humans[i].path[humans[i].iterator2][2]
+                    location.append([x,y,z])
+                    humans[i].iterator2+=1
+
+                else:
+                    location.append([np.nan, np.nan, np.nan])
+            start_date2 += delta
+        #print("this is location")
+        #print(location)
+        # while start_date <= end_date:
+        #     if len(notMovingOvbjectsList) >= 0:
+        #         for i,ival in enumerate(notMovingOvbjectsList):
+        #             if ival.startTime ==start_date:
+        #                 ival.isMoving = True
+        #                 movingObjectsList.append(ival)
+        #                 # print("object")
+        #                 # print(ival.id)
+        #                 # print("started to move")
+        #                 notMovingOvbjectsList.remove(ival)
+        #     if len(movingObjectsList)>=0:
+        #         for j, jval in enumerate(movingObjectsList):
+        #             # print("Moving object:")
+        #             # print(jval.id)
+        #             # print("at coordinated:")
+        #             # print(jval.path[jval.iterator])
+        #             # print("at time:")
+        #             # print(start_date)
+        #
+        #             # print("at floor:"+str(jval.currentFloor))
+        #             # print("at room number:")
+        #
+        #             # print(valueOfRoomNumber)
+        #
+        #             if jval.isInfected:
+        #                 for i, eachH in enumerate(movingObjectsList):
+        #                     if jval.id != eachH.id and eachH.isHealthy and eachH.metWithInfected == False:
+        #                             jval.currentFloor = jval.onWhichFloor(jval.path[jval.iterator][2])
+        #                             eachH.currentFloor = eachH.onWhichFloor(eachH.path[eachH.iterator][2])
+        #                             #check whether moving objects at the same floor
+        #                             if jval.currentFloor == eachH.currentFloor:
+        #                                 valueOfRoomNumber = jval.checker()
+        #                                 valueOfRoomNumber2 = eachH.checker()
+        #                                 # check whether moving objects at the same cellspace
+        #                                 if valueOfRoomNumber == valueOfRoomNumber2:
+        #                                     # find the distance between them
+        #                                     d = jval.getD(eachH.path[eachH.iterator][0],
+        #                                               eachH.path[eachH.iterator][1])
+        #                                     if d <= spreadDistance:
+        #                                         #print(d)
+        #                                         print("check if infection")
+        #                                         eachH.metWithInfected = True
+        #
+        #             jval.iterator += 1
+        #             if(jval.iterator==len(jval.path)):
+        #                 jval.isMoving = False
+        #                 movingObjectsList.remove(jval)
+        #                 print("stop moving")
+        #                 print("number of moving objects left:")
+        #                 print(len(movingObjectsList))
+        #             else:
+        #                 pass
+        #     else:
+        #         pass
+        #
+        #     print("Time:")
+        #     print(start_date)
+        #     start_date += delta
+        #     # print("person location:")
+        #     # print(humans[0].path[i])
+
+        print("FINISH MOVING")
+        print("-----------")
+        print("TIME SPENT:")
+        timeDiff = int(time.time() - now)
+        print(timeDiff)
+
+
+        from matplotlib import pyplot as plt
+        from mpl_toolkits.mplot3d import Axes3D
+        import matplotlib.animation
+        import pandas as pd
+
+        coord = np.array(location,dtype = np.float16)
+        print("length of coord")
+        print(len(coord))
+
+
+
+        t = np.array([np.ones(len(humans)) * i for i in range(diff+1)],dtype = np.int16).flatten()
+        print("length of t")
+        print(len(t))
+        df = pd.DataFrame({"time": t, "x": coord[:, 0], "y": coord[:, 1], "z": coord[:, 2]})
+
+
+        def animate(t):
+            data = df[df['time'] == t]
+            graph.set_data(data.x, data.y)
+            graph.set_3d_properties(data.z)
+            title.set_text('testing, time={}'.format(t))
+            return title, graph,
+
+        fig = plt.figure()
+        ax = fig.add_subplot(111, projection='3d')
+        title = ax.set_title('testing')
+
+        data = df[df['time'] == 0]
+        graph, = ax.plot(data.x, data.y, data.z, linestyle="", marker="o")
+
+        # ax.set_xlim3d([min(highAndLowX), max(highAndLowX)])
+        # ax.set_ylim3d([min(highAndLowY), max(highAndLowY)])
+        # ax.set_zlim3d([min(highAndLowZ), max(highAndLowZ)])
+        # ax.set_box_aspect((max(highAndLowX), max(highAndLowY), max(highAndLowZ)))
+        try:
+            ax.set_aspect('equal')
+        except NotImplementedError:
+            pass
+
+
+        ani = matplotlib.animation.FuncAnimation(fig, animate, len(t), interval=0.01, blit=False)
+
+        plt.show()
+
 
 
     # returns the path of file
@@ -718,7 +947,7 @@ class Menu(tkinter.Frame):
 
     # for creating new window
     def new_window(self, controller, pathGML, pathSIMOGenMovData,numberOfInfected,percentageInfection, spreadD,IP):
-        global top, spreadDistance, frameNew, ax, fig, fig2D, ax2D, currentDay, labelDay, IncubationVal, currentTime, labelTime, timeIncreaser, var2, label2, HumanCount, infectedHumanNumber, healthyHumanNumber
+        global top, spreadDistance, frameNew, ax, fig, fig2D, ax2D, currentDay, labelDay, IncubationVal, currentTime, labelTime, timeIncreaser, var2, label2, HumanCount, infectedHumanNumber, healthyHumanNumber,newObjectsList
         top = tkinter.Toplevel()
         top.title("Virus propagation model")
         top.attributes('-fullscreen', True)
@@ -737,7 +966,7 @@ class Menu(tkinter.Frame):
         spreadDistance = spreadDistance / 150
         # parsing indoor gml data
         myGML_3D(pathGML.get())
-        id_arr, startinitT, endfinalT, increasetime = gettingData(pathSIMOGenMovData.get())
+        listDF, timeStart, timeEnd, increasetime = getData(pathSIMOGenMovData.get())
         canvas1 = tkinter.Canvas(top, highlightbackground="black", highlightcolor="black", highlightthickness=1)
         canvas1.pack(padx=5, pady=5, expand=True, fill="both", side="right")
         frame_top = tkinter.Frame(top, highlightbackground="black", highlightcolor="black", highlightthickness=1)
@@ -761,28 +990,55 @@ class Menu(tkinter.Frame):
         canvas.mpl_connect('button_press_event', ax.axes._button_press)
         canvas.mpl_connect('button_release_event', ax.axes._button_release)
         canvas.mpl_connect('motion_notify_event', ax.axes._on_move)
-        HumanCount = len(id_arr)
+        HumanCount = len(listDF)
         # creating objects by assigning their id, path, start and end time to each person
-        for ival, i in enumerate(np.arange(0, HumanCount)):
-            regularHuman = Person(i, float(percentageInfection.get()))
-            regularHuman.humanID = id_arr[i]
-            humans.append(regularHuman)
-            for ival2, i in enumerate(range(len(idWithCoord))):
-                if regularHuman.humanID == idWithCoord[i][0]:
-                    temporary = [idWithCoord[i][1], idWithCoord[i][2], idWithCoord[i][3] + 2.5]
-                    regularHuman.path.append(temporary)
-                    regularHuman.startT.append(idWithCoord[i][4])
-                    regularHuman.endT.append(idWithCoord[i][5])
-            regularHuman.pathSize = int(len(regularHuman.path))
+
+        global notMovingOvbjectsList, movingObjectsList, delta, start_date, end_date
+        for i,ival in enumerate(listDF):
+            if i <(len(listDF)):
+                listT = listDF[i].values.tolist()
+                regularHuman = Person(i, float(percentageInfection.get()))
+                regularHuman.humanID = listT[0][0]
+                # regularHuman = MovingObject(listT[0][0],listT[1][5])
+                regularHuman.startTime = datetime.strptime(listDF[i]['startTime'].values[0],"%Y-%m-%dT%H:%M:%SZ")
+                regularHuman.endTime = datetime.strptime(listDF[i]['startTime'].values[-1],"%Y-%m-%dT%H:%M:%SZ")
+                #regularHuman.path = listDF[i]['startCoord'].str.split(" ")
+                temp = listDF[i]['startCoord'].str.split(" ")
+                regularHuman.path = [[float(j) for j in n] for n in temp]
+                regularHuman.initialize()
+                notMovingOvbjectsList.append(regularHuman)
+
+                del listT
+                i+=1
+            else:
+                pass
+
+        print("objects are created")
+
+        # for i in range(int(numberOfInfected.get())):
+        #     humans[i].isInfected = True
+        #     print("make initial infected")
+
+        # for ival, i in enumerate(np.arange(0, HumanCount)):
+        #     regularHuman = Person(i, float(percentageInfection.get()))
+        #     regularHuman.humanID = id_arr[i]
+        #     humans.append(regularHuman)
+        #     for ival2, i in enumerate(range(len(idWithCoord))):
+        #         if regularHuman.humanID == idWithCoord[i][0]:
+        #             temporary = [idWithCoord[i][1], idWithCoord[i][2], idWithCoord[i][3] + 2.5]
+        #             regularHuman.path.append(temporary)
+        #             regularHuman.startT.append(idWithCoord[i][4])
+        #             regularHuman.endT.append(idWithCoord[i][5])
+        #     regularHuman.pathSize = int(len(regularHuman.path))
 
         timeIncreaser= 41400/increasetime
-        for i, h in enumerate(humans):
-            for j in range(len(h.endT)):
-                difference = h.endT[j] - startinitT
-                h.timeline.append(difference.seconds)
-        for i, h in enumerate(humans):
-            h.timeline = list(dict.fromkeys(h.timeline))
-            h.timeline.sort()
+        # for i, h in enumerate(humans):
+        #     for j in range(len(h.endT)):
+        #         difference = h.endT[j] - startinitT
+        #         h.timeline.append(difference.seconds)
+        # for i, h in enumerate(humans):
+        #     h.timeline = list(dict.fromkeys(h.timeline))
+        #     h.timeline.sort()
         secondFrame = tkinter.Frame(frame_top, highlightbackground="black", highlightcolor="black",highlightthickness=1)
         canvasScroll = tkinter.Canvas(secondFrame)
         scrollbar = tkinter.Scrollbar(secondFrame, orient="vertical", command=canvasScroll.yview)
@@ -794,11 +1050,28 @@ class Menu(tkinter.Frame):
         tkinter.Label(frameNew, font=scrollFontBig, text="--------------------------").pack()
         numberInfectedFromEntry = int(numberOfInfected.get())
         for ival, i in enumerate(range(numberInfectedFromEntry)):
-            humans[i].makeInfected()
-            initalCase = "Person " + str(humans[i].humanID) +  "\nis infected"
+            notMovingOvbjectsList[i].makeInfected()
+            initalCase = "Person " + str(notMovingOvbjectsList[i].humanID) +  "\nis infected"
             tkinter.Label(frameNew, font=scrollFontSmall, text=initalCase).pack()
             infectedHumanNumber = infectedHumanNumber + 1
         healthyHumanNumber = HumanCount - infectedHumanNumber
+
+
+        # notMovingOvbjectsList = humans.copy()
+        movingObjectsList = []
+        newObjectsList = notMovingOvbjectsList.copy()
+
+        print("start time min")
+        print(timeStart)
+        #print(min(humans, key=lambda x: x.startTime))
+
+        print("end time max")
+        print(timeEnd)
+        #print(max(humans, key=lambda x: x.endTime))
+        # print("human 1 movement")
+        start_date = timeStart
+        end_date = timeEnd
+        delta = timedelta(seconds=1)
         secondFrame.pack(padx=5, pady=5)
         buttonVisualize = tkinter.Button(secondFrame, text="Visualize" , font=fontName, command=lambda pathGML=pathGML: visualize())
         buttonVisualize.pack(padx=10, pady=1, side="left")
@@ -884,7 +1157,7 @@ class Menu(tkinter.Frame):
         canvas.draw()
         canvas2D.draw()
         global anim, anim2D
-        anim = FuncAnimation(fig, updateALL, frames=800, interval=0, blit=True, repeat=True,cache_frame_data = False)
+        anim = FuncAnimation(fig, updateALL, frames=10, interval=0, blit=True, repeat=True,cache_frame_data = False)
         buttonPausingMov = tkinter.Button(frame_bottom, text="Pause simulation", bg='brown', fg='white', font=fontName,command=lambda anim=anim: pauseAnimation(anim))
         buttonPausingMov.pack(padx=2, pady=2, side="left")
         buttonStartingMov = tkinter.Button(frame_bottom, text="Continue simulation", bg='green', fg='white',font=fontName, command=lambda anim=anim: continueAnimation(anim))
