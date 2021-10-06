@@ -8,9 +8,6 @@ def getData(fileName):
     uniqueids = df['@mfidref'].unique()
     print(len(uniqueids))
     df_list = [d for _, d in df.groupby(['@mfidref'])]
-
-    # pd.strptime(df['startTime'].values, "%Y-%m-%dT%H:%M:%SZ")
-    # pd.strptime(df['endTime'].values, "%Y-%m-%dT%H:%M:%SZ")
     df['startTime'] = pd.to_datetime(df['startTime'],format="%Y-%m-%dT%H:%M:%SZ")
     startTimeThis = df['startTime'].min()
     timeS = startTimeThis.to_pydatetime()
@@ -18,7 +15,6 @@ def getData(fileName):
     endTimeThis = df['endTime'].max()
     timeF = endTimeThis.to_pydatetime()
     diff = (timeF-timeS).seconds
-
 
     return df_list, timeS, timeF, diff
 

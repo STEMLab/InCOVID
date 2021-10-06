@@ -1,4 +1,3 @@
-# Person class
 from src.gmlParser import floorsAndValues, GMLOBJ_3D_Objects
 import numpy as np
 import random
@@ -42,16 +41,12 @@ class MovingObject:
 
     # distance between self and other person
     def getD(self, x, y):
-        # if (self.pathSize <= self.iterator):
-        #     self.iterator = self.pathSize - 1
         return np.math.sqrt((self.path[self.iterator][0] - x) ** 2 + (self.path[self.iterator][1] - y) ** 2)
 
 
     # method in case when person meets with infected person and start having symptoms
     def makeInfectedByPerson(self):
         self.startInfection = True
-
-
 
     # method for checking whether all conditions are satisfied for being infected
     def InfectedDayChecker(self):
@@ -73,17 +68,5 @@ class MovingObject:
             eachH.makeInfectedByPerson()
             eachH.infectedDay = currentDay
             eachH.personWhoInfected = self.id
-
-
-#Meeting class
-class Meeting:
-    def __init__(self):
-        self.id = 0
-        self.between = []
-        self.meetingCoordinates = []
-        self.floorNumber = 1
-        self.roomNumber = 0
-        self.day = 0
-
 
 
