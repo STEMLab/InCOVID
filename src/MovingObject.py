@@ -1,6 +1,7 @@
 # Person class
 from src.gmlParser import floorsAndValues, GMLOBJ_3D_Objects
 import numpy as np
+import random
 
 class MovingObject:
     def __init__(self,id,typeMO):
@@ -12,12 +13,17 @@ class MovingObject:
         self.path = []
         self.iterator = 0
         self.iterator2 = 0
+        self.defaultInfectionProbability = 0.5
         self.isMoving = False
         self.isInfected = False
         self.isHealthy = True
+        self.startInfection = False
+        self.alreadyInfected = False
+        self.dayPassedAfterMeetingInfected = 0
         self.metWithInfected = False
         self.currentFloor = 1
         self.currentRoom = ""
+        self.personWhoInfected = ""
 
     # checks in which floor the moving object is located
     def onWhichFloor(self,currentZ):
@@ -41,6 +47,43 @@ class MovingObject:
         return np.math.sqrt((self.path[self.iterator][0] - x) ** 2 + (self.path[self.iterator][1] - y) ** 2)
 
 
+    # method in case when person meets with infected person and start having symptoms
+    def makeInfectedByPerson(self):
+        self.startInfection = True
+
+
+
+    # method for checking whether all conditions are satisfied for being infected
+    def InfectedDayChecker(self):
+        global infectedHumanNumber,healthyHumanNumber
+        global ct, timeArray
+        if self.startInfection is True and self.dayPassedAfterMeetingInfected == 2:
+            print("make person infected")
+            self.makeInfected()
+
+    # turn into infected person
+    def makeInfected(self):
+        self.isInfected = True
+        self.isHealthy = False
+        self.startInfection = False
+
+    # method for check the meeting
+    def inCaseOfMeeting(self,eachH,currentDay):
+        if random.random() <= self.defaultInfectionProbability:
+            eachH.makeInfectedByPerson()
+            eachH.infectedDay = currentDay
+            eachH.personWhoInfected = self.id
+
+
+#Meeting class
+class Meeting:
+    def __init__(self):
+        self.id = 0
+        self.between = []
+        self.meetingCoordinates = []
+        self.floorNumber = 1
+        self.roomNumber = 0
+        self.day = 0
 
 
 

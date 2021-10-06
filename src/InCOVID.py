@@ -196,56 +196,67 @@ def updateALL(t):
 
 
 
-    #second = updatingTheAnimation2D(t)
-    #return first+second
-    return first
+    second = updatingTheAnimation2D(t)
+    return first+second
+    #return first
 
 # used to animate movement of the people
 def updatingTheAnimation():
-    global txt, currentDay, globalTime, sometime, infectedHumanNumber, ct, timeArray, healthyHumanNumber,start_date, notMovingOvbjectsList,valX,valY,valZ
+    global txt, currentDay, globalTime, sometime, infectedHumanNumber, ct, timeArray, healthyHumanNumber,start_date, notMovingOvbjectsList,valX,valY,valZ,initialStartDate
     # if len(movingObjectsList) >= 0:
-    for j, jval in enumerate(movingObjectsList):
+    #   for j, jval in enumerate(movingObjectsList):
+    # #         #jval.meetingProcess()
+    # #         # print("is moving")
+    # #         if jval.infected:
+    # #             for i, eachH in enumerate(movingObjectsList):
+    # #                 if jval.humanID != eachH.humanID and eachH.healthy and eachH.metWithInfected == False:
+    # #                     jval.currentFloor = jval.onWhichFloor(jval.path[jval.pathCounter][2])
+    # #                     eachH.currentFloor = eachH.onWhichFloor(eachH.path[eachH.pathCounter][2])
+    # #                     # check whether moving objects at the same floor
+    # #                     if jval.currentFloor == eachH.currentFloor:
+    # #                         valueOfRoomNumber = jval.checker()
+    # #                         valueOfRoomNumber2 = eachH.checker()
+    # #                         # check whether moving objects at the same cellspace
+    # #                         if valueOfRoomNumber == valueOfRoomNumber2:
+    # #                             # find the distance between them
+    # #                             d = jval.getD(eachH.path[eachH.pathCounter][0],
+    # #                                           eachH.path[eachH.pathCounter][1])
+    # #                             if d <= spreadDistance:
+    # #                                 # print(d)
+    # #                                 print("check if infection")
+    # #                                 eachH.metWithInfected = True
+    #
+    #         jval.pathCounter += 1
+    #         # jval.meetingProcess()
+    #         if (jval.pathCounter == len(jval.path)):
+    #             jval.isMoving = False
+    #             movingObjectsList.remove(jval)
+    #             # print("stop moving")
+    #             # print("number of moving objects left:")
+    #             # print(len(movingObjectsList))
+    #         else:
+    #             pass
+    # else:
+    #     pass
+    #
+    # # print("Time:")
+    # # print(start_date)
+    # start_date += delta
 
-            # print("is moving")
-            # if jval.isInfected:
-            #     for i, eachH in enumerate(movingObjectsList):
-            #         if jval.humanID != eachH.humanID and eachH.isHealthy and eachH.metWithInfected == False:
-            #             jval.currentFloor = jval.onWhichFloor(jval.path[jval.pathCounter][2])
-            #             eachH.currentFloor = eachH.onWhichFloor(eachH.path[eachH.pathCounter][2])
-            #             # check whether moving objects at the same floor
-            #             if jval.currentFloor == eachH.currentFloor:
-            #                 valueOfRoomNumber = jval.checker()
-            #                 valueOfRoomNumber2 = eachH.checker()
-            #                 # check whether moving objects at the same cellspace
-            #                 if valueOfRoomNumber == valueOfRoomNumber2:
-            #                     # find the distance between them
-            #                     d = jval.getD(eachH.path[eachH.pathCounter][0],
-            #                                   eachH.path[eachH.pathCounter][1])
-            #                     if d <= spreadDistance:
-            #                         # print(d)
-            #                         # print("check if infection")
-            #                         eachH.metWithInfected = True
+    for ival,h in enumerate(movingObjectsList):
+                # h.moveOnPath()
+                # if h.infected == True:
+                #     h.meetingProcess()
+                h.pathCounter += 1
+                # jval.meetingProcess()
+                if (h.pathCounter == len(h.path)):
+                    h.isMoving = False
+                    movingObjectsList.remove(h)
 
-            jval.pathCounter += 1
-            if (jval.pathCounter == len(jval.path)):
-                jval.isMoving = False
-                movingObjectsList.remove(jval)
-                # print("stop moving")
-                # print("number of moving objects left:")
-                # print(len(movingObjectsList))
-            else:
-                pass
-    else:
-        pass
+    for ival, h in enumerate(movingObjectsList):
+        h.meetingProcess()
 
-    # print("Time:")
-    # print(start_date)
     start_date += delta
-
-    # for ival,h in enumerate(humans):
-    #     if (h.pathSize > h.iterator and h.isMoving == True):
-    #             h.moveOnPath()
-    #             h.meetingProcess()
     if len(movingObjectsList)==0:
         currentDay += 1
         labelDay.set("Day: "+str(currentDay))
@@ -253,16 +264,14 @@ def updatingTheAnimation():
         labelTime.set("Time: " + str(sometime))
         update(ct, timeArray, infectedHumanNumber, healthyHumanNumber)
         notMovingOvbjectsList = newObjectsList
-        for ival, h in enumerate(humans):
+        for ival, h in enumerate(notMovingOvbjectsList):
             if h.startInfection==True and h.alreadyInfected == False:
                 h.dayPassedAfterMeetingInfected+=1
                 h.InfectedDayChecker()
-        globalTime = 0
+            h.pathCounter = 0
+        start_date = initialStartDate
     # outputFirst = [h.scatter for h in movingObjectsList]
     outputFirst = [h.moveOnPath() for h in movingObjectsList]
-
-
-
     return outputFirst
 
 # update the scene of the infection in each floor
@@ -557,16 +566,18 @@ class Person:
 
     # when meeting happened between healthy person and infected person
     def meetingProcess(self):
+        global movingObjectsList
         # if the person is infected
-        if self.infected and  self.isMoving is True:
-            for i, eachH in enumerate(humans):
+        if self.infected:
+            for i, eachH in enumerate(movingObjectsList):
                 if self.humanID != eachH.humanID:
-                    if eachH.healthy and eachH.isMoving is True:
-                        if self.onWhichFloor(self.path[self.pathCounter][2]) == eachH.onWhichFloor(eachH.path[eachH.iterator][2]):
+                    if eachH.healthy and eachH.metWithInfected == False:
+                        if self.onWhichFloor(self.path[self.pathCounter][2]) == eachH.onWhichFloor(eachH.path[eachH.pathCounter][2]):
                             # find the distance between them
-                            d = self.getD(eachH.path[eachH.iterator][0], eachH.path[eachH.iterator][1])
-                            if d <= spreadDistance*10:
+                            d = self.getD(eachH.path[eachH.pathCounter][0], eachH.path[eachH.pathCounter][1])
+                            if d <= spreadDistance:
                                 self.inCaseOfMeeting(eachH)
+                                eachH.metWithInfected = True
 
     # method for check the meeting
     def inCaseOfMeeting(self,eachH):
@@ -714,9 +725,11 @@ class Menu(tkinter.Frame):
 
     # for generating data
     def generate(self, controller, pathGML, pathSIMOGenMovData, numberOfInfected,percentageInfection, spreadD, IP):
+        import struct
+        print("python is ")
+        print(struct.calcsize("P") * 8)
         print("Reading GML")
         myGML_3D(pathGML.get())
-
         print("start reading csv")
         import time
         now = time.time()
@@ -738,7 +751,6 @@ class Menu(tkinter.Frame):
                 regularHuman.startTime = datetime.strptime(listDF[i]['startTime'].values[0],"%Y-%m-%dT%H:%M:%SZ")
                 regularHuman.endTime = datetime.strptime(listDF[i]['startTime'].values[-1],"%Y-%m-%dT%H:%M:%SZ")
                 regularHuman.path = listDF[i]['startCoord']
-                #regularHuman.path = listDF[i]['startCoord'].str.split(" ")
                 temp = listDF[i]['startCoord'].str.split(" ")
                 regularHuman.path = [[float(j) for j in i] for i in temp]
                 humans.append(regularHuman)
@@ -746,39 +758,25 @@ class Menu(tkinter.Frame):
                 i+=1
             else:
                 pass
-        # for i in humans:
-        #     print("Moving object")
-        #     print(i.id)
-        #     print("start time")
-        #     print(i.startTime)
-        #     print("end time")
-        #     print(i.endTime)
-        #     print("path")
-        #     print(i.path)
         print("finished creating objects")
         print("TIME SPENT:")
         timeDiff = int(time.time() - now)
         print(timeDiff)
-
         print("FINISH")
-
         print("start time min")
         print(timeStart)
-        #print(min(humans, key=lambda x: x.startTime))
-
         print("end time max")
         print(timeEnd)
-        #print(max(humans, key=lambda x: x.endTime))
-        # print("human 1 movement")
         start_date = timeStart
+
         end_date = timeEnd
         delta = timedelta(seconds=1)
 
-        print("Movement of first person")
-        i = 0
 
-        for i in range(int(numberOfInfected.get())):
-            humans[i].isInfected = True
+        infectedHumanNumber = int(numberOfInfected.get())
+
+        for i in range(infectedHumanNumber):
+            humans[i].makeInfected()
             print("make initial infected")
 
         notMovingOvbjectsList = humans.copy()
@@ -786,138 +784,149 @@ class Menu(tkinter.Frame):
 
         import numpy as np
 
-        print("Moving process start")
+        global humansCountInfected
         now = time.time()
-
+        colorsInfectedOrHealthy = []
         start_date2= start_date
-        location = []
-        while start_date2 <= end_date:
-            for i,ival in enumerate(humans):
-                if humans[i].startTime <=start_date2 and humans[i].endTime>=start_date2 and  humans[i].iterator2<=len(humans[i].path):
-                    x= humans[i].path[humans[i].iterator2][0]
-                    y= humans[i].path[humans[i].iterator2][1]
-                    z= humans[i].path[humans[i].iterator2][2]
-                    location.append([x,y,z])
-                    humans[i].iterator2+=1
+        initialStart_date = start_date
+        locationHealthy = []
+        locationInfected = []
+        day = 0
 
-                else:
-                    location.append([np.nan, np.nan, np.nan])
-            start_date2 += delta
-        #print("this is location")
-        #print(location)
-        # while start_date <= end_date:
-        #     if len(notMovingOvbjectsList) >= 0:
-        #         for i,ival in enumerate(notMovingOvbjectsList):
-        #             if ival.startTime ==start_date:
-        #                 ival.isMoving = True
-        #                 movingObjectsList.append(ival)
-        #                 # print("object")
-        #                 # print(ival.id)
-        #                 # print("started to move")
-        #                 notMovingOvbjectsList.remove(ival)
-        #     if len(movingObjectsList)>=0:
-        #         for j, jval in enumerate(movingObjectsList):
-        #             # print("Moving object:")
-        #             # print(jval.id)
-        #             # print("at coordinated:")
-        #             # print(jval.path[jval.iterator])
-        #             # print("at time:")
-        #             # print(start_date)
-        #
-        #             # print("at floor:"+str(jval.currentFloor))
-        #             # print("at room number:")
-        #
-        #             # print(valueOfRoomNumber)
-        #
-        #             if jval.isInfected:
-        #                 for i, eachH in enumerate(movingObjectsList):
-        #                     if jval.id != eachH.id and eachH.isHealthy and eachH.metWithInfected == False:
-        #                             jval.currentFloor = jval.onWhichFloor(jval.path[jval.iterator][2])
-        #                             eachH.currentFloor = eachH.onWhichFloor(eachH.path[eachH.iterator][2])
-        #                             #check whether moving objects at the same floor
-        #                             if jval.currentFloor == eachH.currentFloor:
-        #                                 valueOfRoomNumber = jval.checker()
-        #                                 valueOfRoomNumber2 = eachH.checker()
-        #                                 # check whether moving objects at the same cellspace
-        #                                 if valueOfRoomNumber == valueOfRoomNumber2:
-        #                                     # find the distance between them
-        #                                     d = jval.getD(eachH.path[eachH.iterator][0],
-        #                                               eachH.path[eachH.iterator][1])
-        #                                     if d <= spreadDistance:
-        #                                         #print(d)
-        #                                         print("check if infection")
-        #                                         eachH.metWithInfected = True
-        #
-        #             jval.iterator += 1
-        #             if(jval.iterator==len(jval.path)):
-        #                 jval.isMoving = False
-        #                 movingObjectsList.remove(jval)
-        #                 print("stop moving")
-        #                 print("number of moving objects left:")
-        #                 print(len(movingObjectsList))
-        #             else:
-        #                 pass
-        #     else:
-        #         pass
-        #
-        #     print("Time:")
-        #     print(start_date)
-        #     start_date += delta
-        #     # print("person location:")
-        #     # print(humans[0].path[i])
+        print("Moving process start")
 
-        print("FINISH MOVING")
-        print("-----------")
-        print("TIME SPENT:")
-        timeDiff = int(time.time() - now)
-        print(timeDiff)
+        for day in range(10):
+          print("DAY "+str(day+1))
+          while start_date <= end_date:
+            if len(notMovingOvbjectsList) >= 0:
+                for i,ival in enumerate(notMovingOvbjectsList):
+                    if ival.startTime ==start_date:
+                        ival.isMoving = True
+                        movingObjectsList.append(ival)
+                        notMovingOvbjectsList.remove(ival)
+            if len(movingObjectsList)>=0:
+                prev_obj = None
+                for j, jval in enumerate(movingObjectsList):
+                  if (prev_obj is not None and prev_obj.id != jval.id):
+                    # print("None value")
+                    if(jval.iterator>=len(jval.path)):
+                     jval.isMoving = False
+                     movingObjectsList.remove(jval)
+                        # print(len(movingObjectsList))
+                     notMovingOvbjectsList.append(jval)
+                    else:
+                     if jval.isInfected and prev_obj.iterator<len(prev_obj.path):
+                        # for i, eachH in enumerate(movingObjectsList):
+                        #   if eachH.iterator<len(eachH.path):
+                            if prev_obj.isHealthy:
+                                    jval.currentFloor = jval.onWhichFloor(jval.path[jval.iterator][2])
+                                    prev_obj.currentFloor = prev_obj.onWhichFloor(prev_obj.path[prev_obj.iterator][2])
+                                    #check whether moving objects at the same floor
+                                    if jval.currentFloor == prev_obj.currentFloor:
+                                        valueOfRoomNumber = jval.checker()
+                                        valueOfRoomNumber2 = prev_obj.checker()
+                                        # check whether moving objects at the same cellspace
+                                        if valueOfRoomNumber == valueOfRoomNumber2:
+                                            # find the distance between them
+                                            d = jval.getD(prev_obj.path[prev_obj.iterator][0],
+                                                      prev_obj.path[prev_obj.iterator][1])
+                                            if d <= spreadDistance*10:
+                                                jval.inCaseOfMeeting(prev_obj, day+1)
+                    jval.iterator += 1
+                  prev_obj = jval
+            else:
+                pass
+            # print("Time:")
+            # print(start_date)
+            start_date += delta
+            print("time left of Day "+str(day+1)+":")
+            print(str((end_date-start_date).total_seconds()))
+          for ival, h in enumerate(notMovingOvbjectsList):
+              if h.startInfection == True and h.alreadyInfected == False:
+                  h.dayPassedAfterMeetingInfected += 1
+                  h.InfectedDayChecker()
+              h.iterator = 0
+          start_date = initialStart_date
+          currentDay=day+1
 
+          countInfected = 0
+          humansCountInfected = notMovingOvbjectsList + movingObjectsList
+          for i in range(len(humansCountInfected)):
+              if (humansCountInfected[i].isInfected == True):
+                  countInfected += 1
+          print("final results is: ")
+          print(countInfected)
 
-        from matplotlib import pyplot as plt
-        from mpl_toolkits.mplot3d import Axes3D
-        import matplotlib.animation
-        import pandas as pd
+          from matplotlib import pyplot as plt
+          import matplotlib.animation
+          import pandas as pd
+          t = []
+          df = []
+          # start_date2 = initialStart_date
+          while start_date2 <= end_date:
+              for ii, ival in enumerate(humansCountInfected):
+                  if humansCountInfected[ii].startTime <= start_date2 and humansCountInfected[ii].endTime >= start_date2 and humansCountInfected[ii].iterator2 <= len(humansCountInfected[ii].path):
+                      x = humansCountInfected[ii].path[humansCountInfected[ii].iterator2][0]
+                      y = humansCountInfected[ii].path[humansCountInfected[ii].iterator2][1]
+                      z = humansCountInfected[ii].path[humansCountInfected[ii].iterator2][2]
+                      if humansCountInfected[ii].isInfected:
+                          locationInfected.append([x, y, z])
+                          locationHealthy.append([np.nan, np.nan, np.nan])
+                      else:
+                          locationHealthy.append([x, y, z])
+                          locationInfected.append([np.nan, np.nan, np.nan])
+                      humansCountInfected[ii].iterator2 += 1
+                  else:
+                      locationInfected.append([np.nan, np.nan, np.nan])
+                      locationHealthy.append([np.nan, np.nan, np.nan])
+              start_date2 += delta
 
-        coord = np.array(location,dtype = np.float16)
-        print("length of coord")
-        print(len(coord))
+          coord = np.array(locationHealthy, dtype=np.float32)
+          coordInfected = np.array(locationInfected, dtype=np.float32)
+          print("length of coord")
+          print(len(coord))
 
+          t = np.array([np.ones(len(humansCountInfected)) * i for i in range(diff+1)],dtype = np.uint32).flatten()
+          df = pd.DataFrame({"time": t, "x": coord[:, 0], "y": coord[:, 1], "z": coord[:, 2],"xInfected": coordInfected[:, 0], "yInfected": coordInfected[:, 1], "zInfected": coordInfected[:, 2]})
 
+          def animate(t):
+              data = df[df['time'] == t]
+              graph.set_data(data.x, data.y)
+              graph.set_3d_properties(data.z)
+              new.set_data(data.xInfected, data.yInfected)
+              new.set_3d_properties(data.zInfected)
+              return graph, new
 
-        t = np.array([np.ones(len(humans)) * i for i in range(diff+1)],dtype = np.int16).flatten()
-        print("length of t")
-        print(len(t))
-        df = pd.DataFrame({"time": t, "x": coord[:, 0], "y": coord[:, 1], "z": coord[:, 2]})
+          fig = plt.figure()
+          ax = fig.add_subplot(111, projection='3d')
+          title_string = 'Day '+str(currentDay)
+          subtitle = ax.set_title(title_string)
 
-
-        def animate(t):
-            data = df[df['time'] == t]
-            graph.set_data(data.x, data.y)
-            graph.set_3d_properties(data.z)
-            title.set_text('testing, time={}'.format(t))
-            return title, graph,
-
-        fig = plt.figure()
-        ax = fig.add_subplot(111, projection='3d')
-        title = ax.set_title('testing')
-
-        data = df[df['time'] == 0]
-        graph, = ax.plot(data.x, data.y, data.z, linestyle="", marker="o")
-
-        # ax.set_xlim3d([min(highAndLowX), max(highAndLowX)])
-        # ax.set_ylim3d([min(highAndLowY), max(highAndLowY)])
-        # ax.set_zlim3d([min(highAndLowZ), max(highAndLowZ)])
-        # ax.set_box_aspect((max(highAndLowX), max(highAndLowY), max(highAndLowZ)))
-        try:
-            ax.set_aspect('equal')
-        except NotImplementedError:
-            pass
-
-
-        ani = matplotlib.animation.FuncAnimation(fig, animate, len(t), interval=0.01, blit=False)
-
-        plt.show()
-
+          data = df[df['time'] == 0]
+          graph, = ax.plot(data.x, data.y, data.z, color='lime',  marker='o', linestyle="", markeredgecolor='black', markeredgewidth=0.5, markersize=4)
+          new, = ax.plot(data.xInfected, data.yInfected, data.zInfected, color='red', marker='o', linestyle="", markeredgecolor='black', markeredgewidth=0.5, markersize=4)
+          allPoints =  []
+          allPointsDoors =[]
+          allObjects = []
+          allObjectsDoors = []
+          lineWidthVal = []
+          alphaVal = 0.3
+          lineWidthVal = 0.05
+          lineWidthVal2 = 0.05
+          drawer(ax, allPoints, allPointsDoors, allObjects, allObjectsDoors, True, alphaVal, lineWidthVal, False, 0)
+          ax.set_axis_off()
+          ax.set_xlim3d([0, max(highAndLowX)])
+          ax.set_ylim3d([0, max(highAndLowY)])
+          ax.set_zlim3d([0, max(highAndLowZ)*5])
+          ax.set_box_aspect((max(highAndLowX), max(highAndLowY), max(highAndLowZ)*5))
+          try:
+              ax.set_aspect('equal')
+          except NotImplementedError:
+              pass
+          animation = matplotlib.animation.FuncAnimation(fig, animate, diff+1, interval=0.01, blit=True)
+          plt.suptitle("Infected moving objects: " + str(countInfected)+" and " + "Healthy moving objects: " + str(len(humansCountInfected)-countInfected))
+          plt.show()
+          del df, data, fig,new
 
 
     # returns the path of file
@@ -947,7 +956,7 @@ class Menu(tkinter.Frame):
 
     # for creating new window
     def new_window(self, controller, pathGML, pathSIMOGenMovData,numberOfInfected,percentageInfection, spreadD,IP):
-        global top, spreadDistance, frameNew, ax, fig, fig2D, ax2D, currentDay, labelDay, IncubationVal, currentTime, labelTime, timeIncreaser, var2, label2, HumanCount, infectedHumanNumber, healthyHumanNumber,newObjectsList
+        global top, spreadDistance, frameNew, ax, fig, fig2D, ax2D, currentDay, labelDay, IncubationVal, currentTime, labelTime, timeIncreaser, var2, label2, HumanCount, infectedHumanNumber, healthyHumanNumber,newObjectsList,initialStartDate
         top = tkinter.Toplevel()
         top.title("Virus propagation model")
         top.attributes('-fullscreen', True)
@@ -1070,6 +1079,7 @@ class Menu(tkinter.Frame):
         #print(max(humans, key=lambda x: x.endTime))
         # print("human 1 movement")
         start_date = timeStart
+        initialStartDate = timeStart
         end_date = timeEnd
         delta = timedelta(seconds=1)
         secondFrame.pack(padx=5, pady=5)
@@ -1170,3 +1180,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+

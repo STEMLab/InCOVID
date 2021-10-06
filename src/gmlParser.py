@@ -73,7 +73,7 @@ def myGML_3D(gmlFileName):
     # for finding the lowest and hightest value
     for envelope in root.findall(
             './/{http://www.opengis.net/gml/3.2}Polygon/{http://www.opengis.net/gml/3.2}exterior/{http://www.opengis.net/gml/3.2}LinearRing'):
-        for ival,i in enumerate(envelope.getchildren()):
+        for ival,i in enumerate(list(envelope)):
             myTemp = [float(x) for x in i.text.split(' ')]
             highAndLowX.append(myTemp[0])
             highAndLowY.append(myTemp[1])
@@ -92,7 +92,7 @@ def myGML_3D(gmlFileName):
                         '{http://www.opengis.net/gml/3.2}exterior/{http://www.opengis.net/gml/3.2}Shell'):
                 for c in b.findall(
                           '{http://www.opengis.net/gml/3.2}surfaceMember/{http://www.opengis.net/gml/3.2}Polygon/{http://www.opengis.net/gml/3.2}exterior/{http://www.opengis.net/gml/3.2}LinearRing'):
-                    for i in c.getchildren():
+                    for i in list(c):
                         myTemp = [float(x) for x in i.text.strip().split(' ')]
                         x = np.float64(myTemp[0])
                         y = np.float64(myTemp[1])
@@ -137,7 +137,7 @@ def myGML_3D(gmlFileName):
                 numTimes = 0
                 for c in b.findall(
                           '{http://www.opengis.net/gml/3.2}surfaceMember/{http://www.opengis.net/gml/3.2}Polygon/{http://www.opengis.net/gml/3.2}exterior/{http://www.opengis.net/gml/3.2}LinearRing'):
-                    for i in c.getchildren():
+                    for i in list(c):
                         myTemp = [float(x) for x in i.text.strip().split(' ')]
                         x = np.float64(myTemp[0])
                         y = np.float64(myTemp[1])
@@ -173,7 +173,7 @@ def myGML_3D(gmlFileName):
             for b in envelope.findall('{http://www.opengis.net/indoorgml/1.0/core}geometry3D/{http://www.opengis.net/gml/3.2}Polygon/{http://www.opengis.net/gml/3.2}exterior/{http://www.opengis.net/gml/3.2}LinearRing'):
                     numTimes = 0
                     tempObject = GMLOBJ_DOORS_3D()
-                    for ival,i in enumerate(b.getchildren()):
+                    for ival,i in enumerate(list(b)):
                         numTimes += 1
                         myTemp = [float(x) for x in i.text.split(' ')]
                         myTemp = [myTemp[0], myTemp[1], myTemp[2]]
@@ -189,7 +189,7 @@ def myGML_3D(gmlFileName):
             for b in envelope.findall('{http://www.opengis.net/gml/3.2}exterior/{http://www.opengis.net/gml/3.2}LinearRing'):
                     numTimes = 0
                     tempObject = GMLOBJ_ELEVATOR_3D()
-                    for ival,i in enumerate(b.getchildren()):
+                    for ival,i in enumerate(list(b)):
                         numTimes += 1
                         myTemp = [float(x) for x in i.text.split(' ')]
                         myTemp = [myTemp[0], myTemp[1], myTemp[2]]
@@ -209,7 +209,7 @@ def myGML_3D(gmlFileName):
                         '{http://www.opengis.net/gml/3.2}exterior/{http://www.opengis.net/gml/3.2}LinearRing'):
                     numTimes = 0
                     tempObject = GMLOBJ_DOORS_3D()
-                    for ival, i in enumerate(b.getchildren()):
+                    for ival, i in enumerate(list(b)):
                         numTimes += 1
                         myTemp = [float(x) for x in i.text.split(' ')]
                         myTemp = [myTemp[0], myTemp[1], myTemp[2]]
@@ -239,7 +239,7 @@ def myGML_3D(gmlFileName):
             './/{http://www.opengis.net/indoorgml/1.0/core}Transition/{http://www.opengis.net/indoorgml/1.0/core}geometry/{http://www.opengis.net/gml/3.2}LineString'):
         numTimes = 0
         tempObject = GMLOBJ_TRANSITION()
-        for ival,i in enumerate(envelope.getchildren()):
+        for ival,i in enumerate(list(envelope)):
             numTimes += 1
             myTemp = [float(x) for x in i.text.split(' ')]
             myTemp = [myTemp[0], myTemp[1], myTemp[2]]
