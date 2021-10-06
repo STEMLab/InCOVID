@@ -202,47 +202,7 @@ def updateALL(t):
 
 # used to animate movement of the people
 def updatingTheAnimation():
-    global txt, currentDay, globalTime, sometime, infectedHumanNumber, ct, timeArray, healthyHumanNumber,start_date, notMovingOvbjectsList,valX,valY,valZ,initialStartDate
-    # if len(movingObjectsList) >= 0:
-    #   for j, jval in enumerate(movingObjectsList):
-    # #         #jval.meetingProcess()
-    # #         # print("is moving")
-    # #         if jval.infected:
-    # #             for i, eachH in enumerate(movingObjectsList):
-    # #                 if jval.humanID != eachH.humanID and eachH.healthy and eachH.metWithInfected == False:
-    # #                     jval.currentFloor = jval.onWhichFloor(jval.path[jval.pathCounter][2])
-    # #                     eachH.currentFloor = eachH.onWhichFloor(eachH.path[eachH.pathCounter][2])
-    # #                     # check whether moving objects at the same floor
-    # #                     if jval.currentFloor == eachH.currentFloor:
-    # #                         valueOfRoomNumber = jval.checker()
-    # #                         valueOfRoomNumber2 = eachH.checker()
-    # #                         # check whether moving objects at the same cellspace
-    # #                         if valueOfRoomNumber == valueOfRoomNumber2:
-    # #                             # find the distance between them
-    # #                             d = jval.getD(eachH.path[eachH.pathCounter][0],
-    # #                                           eachH.path[eachH.pathCounter][1])
-    # #                             if d <= spreadDistance:
-    # #                                 # print(d)
-    # #                                 print("check if infection")
-    # #                                 eachH.metWithInfected = True
-    #
-    #         jval.pathCounter += 1
-    #         # jval.meetingProcess()
-    #         if (jval.pathCounter == len(jval.path)):
-    #             jval.isMoving = False
-    #             movingObjectsList.remove(jval)
-    #             # print("stop moving")
-    #             # print("number of moving objects left:")
-    #             # print(len(movingObjectsList))
-    #         else:
-    #             pass
-    # else:
-    #     pass
-    #
-    # # print("Time:")
-    # # print(start_date)
-    # start_date += delta
-
+    global  currentDay, sometime, infectedHumanNumber, ct, timeArray, healthyHumanNumber, start_date, notMovingOvbjectsList, initialStartDate
     for ival,h in enumerate(movingObjectsList):
                 # h.moveOnPath()
                 # if h.infected == True:
@@ -252,9 +212,6 @@ def updatingTheAnimation():
                 if (h.pathCounter == len(h.path)):
                     h.isMoving = False
                     movingObjectsList.remove(h)
-
-    for ival, h in enumerate(movingObjectsList):
-        h.meetingProcess()
 
     start_date += delta
     if len(movingObjectsList)==0:
@@ -270,7 +227,6 @@ def updatingTheAnimation():
                 h.InfectedDayChecker()
             h.pathCounter = 0
         start_date = initialStartDate
-    # outputFirst = [h.scatter for h in movingObjectsList]
     outputFirst = [h.moveOnPath() for h in movingObjectsList]
     return outputFirst
 
