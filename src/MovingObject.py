@@ -2,6 +2,7 @@ from src.gmlParser import floorsAndValues, GMLOBJ_3D_Objects
 import numpy as np
 import random
 
+
 class MovingObject:
     def __init__(self,id,typeMO):
         self.id = id
@@ -12,14 +13,15 @@ class MovingObject:
         self.path = []
         self.iterator = 0
         self.iterator2 = 0
-        self.defaultInfectionProbability = 0.5
+        self.defaultInfectionProbability = 0.9
         self.isMoving = False
         self.isInfected = False
         self.isHealthy = True
         self.startInfection = False
         self.alreadyInfected = False
-        self.dayPassedAfterMeetingInfected = 0
         self.metWithInfected = False
+        self.becameNewInfected = False
+        self.dayPassedAfterMeetingInfected = 0
         self.currentFloor = 1
         self.currentRoom = ""
         self.personWhoInfected = ""
@@ -54,7 +56,12 @@ class MovingObject:
         global ct, timeArray
         if self.startInfection is True and self.dayPassedAfterMeetingInfected == 2:
             print("make person infected")
-            self.makeInfected()
+            if random.random() <= self.defaultInfectionProbability:
+                    self.makeInfected()
+                    self.becameNewInfected = True
+            else:
+                self.startInfection = False
+                self.dayPassedAfterMeetingInfected = 0
 
     # turn into infected person
     def makeInfected(self):
@@ -62,9 +69,9 @@ class MovingObject:
         self.isHealthy = False
         self.startInfection = False
 
+
     # method for check the meeting
     def inCaseOfMeeting(self,eachH,currentDay):
-        if random.random() <= self.defaultInfectionProbability:
             eachH.makeInfectedByPerson()
             eachH.infectedDay = currentDay
             eachH.personWhoInfected = self.id
