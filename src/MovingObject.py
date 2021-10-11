@@ -6,7 +6,6 @@ import random
 class MovingObject:
     def __init__(self,id,typeMO):
         self.id = id
-        #employee = 1 and client = 2
         self.type = typeMO
         self.startTime = 0
         self.endTime = 0
@@ -22,46 +21,14 @@ class MovingObject:
         self.metWithInfected = False
         self.becameNewInfected = False
         self.dayPassedAfterMeetingInfected = 0
+        self.dayMetWithInfectedMO = 0
+        self.IDInfectedMO = 0
+        self.incubationVal = 0
         self.currentFloor = 1
         self.currentRoom = ""
         self.personWhoInfected = ""
-
-    # checks in which floor the moving object is located
-    def onWhichFloor(self,currentZ):
-        for k, v in floorsAndValues.items():
-            if currentZ<= max(v) and currentZ >= min(v):
-                return k
-
-    # checks the current room number where the moving object is located
-    def checker(self):
-            currentPointLocation = (self.path[self.iterator][0], self.path[self.iterator][1])
-            for i, myobject in enumerate(GMLOBJ_3D_Objects):
-                    if myobject.poly_path.contains_point(currentPointLocation):
-                        return myobject.id
-                    else:
-                        pass
-
-    # distance between self and other person
-    def getD(self, x, y):
-        return np.math.sqrt((self.path[self.iterator][0] - x) ** 2 + (self.path[self.iterator][1] - y) ** 2)
-
-
-    # method in case when person meets with infected person and start having symptoms
-    def makeInfectedByPerson(self):
-        self.startInfection = True
-
-    # method for checking whether all conditions are satisfied for being infected
-    def InfectedDayChecker(self):
-        global infectedHumanNumber,healthyHumanNumber
-        global ct, timeArray
-        if self.startInfection is True and self.dayPassedAfterMeetingInfected == 2:
-            print("make person infected")
-            if random.random() <= self.defaultInfectionProbability:
-                    self.makeInfected()
-                    self.becameNewInfected = True
-            else:
-                self.startInfection = False
-                self.dayPassedAfterMeetingInfected = 0
+        self.trajectory = []
+        self.trajectoryZ = []
 
     # turn into infected person
     def makeInfected(self):
@@ -69,11 +36,41 @@ class MovingObject:
         self.isHealthy = False
         self.startInfection = False
 
-
     # method for check the meeting
     def inCaseOfMeeting(self,eachH,currentDay):
             eachH.makeInfectedByPerson()
             eachH.infectedDay = currentDay
             eachH.personWhoInfected = self.id
 
+    # method for check the meeting
+    def metWithInfectedMO(self,otherMO,day):
+            self.startInfection = True
+            self.dayMetWithInfectedMO = day
+            self.IDInfectedMO = otherMO.id
 
+    # checks in which floor the moving object is located
+    def checkAtWhichFloor(self,currentZ):
+        for k, v in floorsAndValues.items():
+            if currentZ<= max(v) and currentZ >= min(v):
+                return k
+
+    # checks the current room number where the moving object is located
+    def checker(self,currentPointLocation,floorN):
+            #currentPointLocation = (self.path[self.iterator][0], self.path[self.iterator][1])
+            for i, myobject in enumerate(GMLOBJ_3D_Objects):
+                    if myobject.poly_path.contains_point(currentPointLocation) and myobject.floor==floorN:
+                        return myobject.id
+                    else:
+                        pass
+
+    # method for checking whether all conditions are satisfied for being infected
+    def InfectedDayChecker(self):
+        global infectedHumanNumber,healthyHumanNumber
+        global ct, timeArray
+        if self.startInfection is True and self.dayPassedAfterMeetingInfected == self.incubationVal:
+            if random.random() <= self.defaultInfectionProbability:
+                    self.makeInfected()
+                    self.becameNewInfected = True
+            else:
+                self.startInfection = False
+                self.dayPassedAfterMeetingInfected = 0

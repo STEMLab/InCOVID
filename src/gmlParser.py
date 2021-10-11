@@ -125,7 +125,6 @@ def myGML_3D(gmlFileName):
     for envelope in root.findall(
                 './/{http://www.opengis.net/indoorgml/1.0/core}Geometry3D'):
             tempObject = GMLOBJ_3D_OBJECTS()
-
             for a in envelope.findall('{http://www.opengis.net/gml/3.2}Solid'):
               key = a.attrib
               tempObject.id = key.get('{http://www.opengis.net/gml/3.2}id')
@@ -246,8 +245,3 @@ def myGML_3D(gmlFileName):
             tempObject.allPos.append(myTemp)
         tempObject.sideNumber = int(numTimes)
         gmlObjectsTransitions_3D.append(tempObject)
-
-
-
-
-
