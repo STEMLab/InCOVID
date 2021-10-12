@@ -19,10 +19,12 @@ import matplotlib.animation
 import pandas as pd
 import matplotlib.pyplot as plt
 import numpy as np
+import time as clock
 from datetime import timedelta, datetime, date, time
 from src.InpReader import getData
 from src.MovingObject import MovingObject
 from src.gmlParser import myGML_3D
+
 
 matplotlib.use('agg')
 
@@ -44,13 +46,16 @@ humans = []
 infectionCase = []
 floorChanger = 1
 infectedHumanNumber = 0
-currentDay = 1
+currentDay = 0
 currentTime = 0
 timeIncreaser = 0
 meetingCase = []
 valX=[]
 valY=[]
 valZ=[]
+allInfected = []
+eachDayInfected = []
+totalDays = 0
 
 #Meeting class
 class Meeting:
@@ -74,6 +79,23 @@ class Meeting:
         self.scatter.set_xdata(tempVarX)
         self.scatter.set_ydata(tempVarY)
         self.scatter.set_3d_properties(tempVarZ)
+
+
+# function for updating graph, pie chart, and label values
+def updateGraphs(ct, timeArray, infN, hN):
+        c.clear()
+        ct.append(infN)
+        timeArray.append(int(currentDay+1))
+        c.plot(timeArray, ct,color="red")
+        plt.ion()
+        cvst, = c.plot(int(infN), color="red", label="Infected moving object")
+        c.legend(handles=[cvst])
+        axPie.clear()
+        dataProportion = np.array([hN, infN])
+        axPie.pie(dataProportion, autopct=lambda val: updaterOfValuesAndPercentage(val, dataProportion),
+                  explode=explode, labels=labelCondition, shadow=True, colors=colors)
+        c.set_xlabel("Time (days)")
+        c.set_ylabel("Infected moving object")
 
 
 # for visualization IndoorGML data
@@ -110,24 +132,6 @@ def drawer(ax,allPoints,allObjects,v3d,alphaVal,lineWidthVal,FloorCheck,floorN):
 def updaterOfValuesAndPercentage(this, thisValues):
     output = int(this / 99.999*np.sum(thisValues))
     return "{:.1f}%\n({:d})".format(this, output)
-
-# function for updating graph, pie chart, and label values
-def update(ct, timeArray, infectedHumanNumber,healthPersonNumber):
-        c.clear()
-        ct.append(infectedHumanNumber)
-        timeArray.append(currentDay)
-        c.plot(timeArray, ct,color="red")
-        plt.ion()
-        cvst, = c.plot(int(infectedHumanNumber), color="red", label="Infected people")
-        c.legend(handles=[cvst])
-        axPie.clear()
-        dataProportion = np.array([healthPersonNumber, infectedHumanNumber])
-        axPie.pie(dataProportion, autopct=lambda val: updaterOfValuesAndPercentage(val, dataProportion),
-                  explode=explode, labels=labelCondition, shadow=True, colors=colors)
-        c.set_xlabel("Time (days)")
-        c.set_ylabel("Infected people")
-        var2.set("Number of infected people: "+str(infectedHumanNumber))
-        label2.pack()
 
 # function for drawing specific floor
 def drawerByFloor(floorN):
@@ -372,7 +376,7 @@ class Menu(tkinter.Frame):
         labelInfPercntg = tkinter.Label(self, textvariable=labelInfectionPercentage, font=fontName, height=2)
         labelInfPercntg.grid()
         percentageInfection = tkinter.StringVar(None)
-        percentageInfection.set("0.5")
+        percentageInfection.set("0.9")
         perInfec = tkinter.Entry(self, textvariable=percentageInfection, font=fontName, width=10)
         perInfec.grid()
         labelSpreadDistance = tkinter.StringVar()
@@ -388,7 +392,7 @@ class Menu(tkinter.Frame):
         labelIP = tkinter.Label(self, textvariable=labelIncubationPeriod, font=fontName, height=2)
         labelIP.grid()
         IP = tkinter.StringVar(None)
-        IP.set("2")
+        IP.set("1")
         IPentry = tkinter.Entry(self, textvariable=IP, font=fontName, width=10)
         IPentry.grid()
 
@@ -411,19 +415,15 @@ class Menu(tkinter.Frame):
 
     # for generating data
     def generate(self, controller, pathGML, pathSIMOGenMovData, numberOfInfected,percentageInfection, spreadD, IP):
-        import struct
-        print("python is ")
-        print(struct.calcsize("P") * 8)
+        # reading indoorGML file
         myGML_3D(pathGML.get())
-
-        global diff, totalTime, HumanCount
+        global diff, totalTime, HumanCount, totalDays
         listDF, timeStart, timeEnd, diff = getData(pathSIMOGenMovData.get())
         spreadDistance = float(spreadD.get())
         import csv
         dataToCSV = []
         dataToCSVInfection = []
         header = ['MO_ID', 'InfectedMO_ID', 'meetingCoordinate', 'meetingRoom', 'meetingDay', 'meetingTime']
-
         headerInfection = ['InfectedMO_ID', 'infectedDay']
         HumanCount = len(listDF)
         for i, ival in enumerate(listDF):
@@ -446,15 +446,16 @@ class Menu(tkinter.Frame):
         end_date = timeEnd
         delta = timedelta(seconds=1)
         # default value how many days passed for simulation of infection
-        daystotalPassed = 10
+        daystotalPassed = 100000
         totalTime = 0
+
+        global allInfected
         infectedHumanNumber = int(numberOfInfected.get())
         countInfected = int(numberOfInfected.get())
         for i in range(infectedHumanNumber):
             humans[i].makeInfected()
             dataToCSVInfection.append([humans[i].id, 1])
-            dataToCSVInfection.append([humans[i].id, 1])
-
+            allInfected.append(humans[i].id)
 
         start_date2 = timeStart
         while start_date2 <= end_date:
@@ -476,6 +477,7 @@ class Menu(tkinter.Frame):
         someTime = time(8, 50)  # 8:50AM
         currTime = time(8, 50)  # 8:50AM
 
+        timeNow = clock.time()
         for dayCurrent in range(daystotalPassed):
             for t in range(totalTime):
                 tempAllLocation = []
@@ -506,12 +508,11 @@ class Menu(tkinter.Frame):
                                             dataToCSV.append(tempV)
                                         else:
                                             pass
-
                 currTime = (datetime.combine(date.today(), someTime) + timedelta(seconds=timeIncreaser)).time()
                 someTime = currTime
-                # print("percentage of infection: " + str(int(countInfected/HumanCount*100))+"%")
+                print("percentage of infection: " + str(float(countInfected/HumanCount*100))+"%")
             someTime = time(8, 50)
-
+            totalDays += 1
             for ival, h in enumerate(humans):
                 if h.startInfection == True and h.alreadyInfected == False:
                     h.dayPassedAfterMeetingInfected += 1
@@ -523,24 +524,21 @@ class Menu(tkinter.Frame):
 
             if countInfected >= 0.9 * len(humans):
                 print("More than 90% of MO were infected")
+                timeAfter = clock.time()
+                print("Required time: "+str(timeAfter-timeNow)+" seconds")
                 break
-
 
         with open('meetingWithMO.csv', 'w', encoding='UTF8', newline='') as f:
             writer = csv.writer(f)
-
             # write the header
             writer.writerow(header)
-
             # write multiple rows
             writer.writerows(dataToCSV)
 
         with open('InfectionTimeline.csv', 'w', encoding='UTF8', newline='') as f2:
             writer = csv.writer(f2)
-
             # write the header
             writer.writerow(headerInfection)
-
             # write multiple rows
             writer.writerows(dataToCSVInfection)
 
@@ -576,12 +574,10 @@ class Menu(tkinter.Frame):
             uniqueDays = df['infectedDay'].unique()
             maxDay = int(max(uniqueDays))
             infectedIDs = df['InfectedMO_ID'].tolist()
-
             df_list = [d for _, d in df.groupby(['infectedDay'])]
 
-
-
-            global top, spreadDistance, frameNew, ax, fig, fig2D, ax2D, currentDay, labelDay, IncubationVal, currentTime, labelTime, timeIncreaser, var2, label2, infectedHumanNumber, healthyHumanNumber, newObjectsList, initialStartDate
+            global top, spreadDistance, frameNew, ax, fig, fig2D, ax2D, currentDay, labelDay, IncubationVal, currentTime, labelTime, timeIncreaser, var2, label2, newObjectsList, initialStartDate
+            global allInfected, totalDays
             top = tkinter.Toplevel()
             top.title("Virus propagation model")
             top.attributes('-fullscreen', True)
@@ -605,7 +601,7 @@ class Menu(tkinter.Frame):
             varNew.set("Virus propagation model in Indoor space")
             labelNew.pack(side="top", padx=5, pady=5)
             labelDay = tkinter.StringVar()
-            labelDay.set("Day: " + str(currentDay))
+            labelDay.set("Day: " + str(currentDay+1))
             main_label = tkinter.Label(frame_top, textvariable=labelDay, font=('Arial 14 bold'))
             main_label.pack(side="top", padx=5, pady=1)
             labelTime = tkinter.StringVar()
@@ -628,7 +624,6 @@ class Menu(tkinter.Frame):
             canvasScroll.configure(yscrollcommand=scrollbar.set)
             tkinter.Label(frameNew, font=scrollFontBig, text="Events log").pack()
             tkinter.Label(frameNew, font=scrollFontBig, text="--------------------------").pack()
-            infectedHumanNumber = int(numberOfInfected.get())
             secondFrame.pack(padx=5, pady=5)
             buttonVisualize = tkinter.Button(secondFrame, text="Visualize", font=fontName,command=lambda pathGML=pathGML: visualize())
             buttonVisualize.pack(padx=10, pady=1, side="left")
@@ -644,75 +639,93 @@ class Menu(tkinter.Frame):
             canvas2D.mpl_connect('button_press_event', ax2D.axes._button_press)
             canvas2D.mpl_connect('button_release_event', ax2D.axes._button_release)
             canvas2D.mpl_connect('motion_notify_event', ax2D.axes._on_move)
-
-
-
-
-            t = np.array([np.ones(len(humans)) * i for i in range(maxDay*(totalTime))], dtype=np.uint32).flatten()
-
             locationHealthy = []
             locationInfected = []
+            dayChecker = []
+            day = 1
+            dayA = 0
 
-            for day in range(maxDay):
-                dayList = df_list[0]['infectedDay'].tolist()
-                infday = dayList[0]
-                infList = df_list[day]['InfectedMO_ID'].tolist()
-                for cTime in range(totalTime):
-                    for i,ival in enumerate(humans):
-                        if day == infday and humans[i].id in infList:
-                            locationInfected.append([humans[i].trajectory[cTime][0],humans[i].trajectory[cTime][1],humans[i].trajectoryZ[cTime]])
-                            locationHealthy.append([np.nan,np.nan,np.nan])
-                        else:
-                            locationHealthy.append([humans[i].trajectory[cTime][0], humans[i].trajectory[cTime][1],
-                                                    humans[i].trajectoryZ[cTime]])
-                            locationInfected.append([np.nan, np.nan, np.nan])
+            while day<=(totalDays):
+                if dayA < len(df_list):
+                    dayList = df_list[dayA]['infectedDay'].tolist()
+                    infday = dayList[0]
+                    if day==infday and day not in dayChecker:
+                        dayChecker.append(day)
+                        infList = df_list[dayA]['InfectedMO_ID'].tolist()
+                        print("correct infdays")
+                        print(infday)
+                        print("infected number of people")
+                        print(len(infList))
+
+                        # adding new infected to the list
+                        dayA += 1
+                        day += 1
+                        for x in range(len(infList)):
+                                if str(infList[x]) not in allInfected:
+                                    allInfected.append(str(infList[x]))
+                        eachDayInfected.append(len(allInfected))
+                        for cTime in range(totalTime):
+                            for i, ival in enumerate(humans):
+                                if humans[i].id in allInfected:
+                                    locationInfected.append([humans[i].trajectory[cTime][0], humans[i].trajectory[cTime][1], humans[i].trajectoryZ[cTime]])
+                                    locationHealthy.append([np.nan, np.nan, np.nan])
+                                else:
+                                    locationHealthy.append([humans[i].trajectory[cTime][0], humans[i].trajectory[cTime][1],humans[i].trajectoryZ[cTime]])
+                                    locationInfected.append([np.nan, np.nan, np.nan])
+                    elif day != infday and day not in dayChecker:
+                        dayChecker.append(day)
+                        eachDayInfected.append(len(allInfected))
+                        day += 1
+                        for cTime in range(totalTime):
+                            for i, ival in enumerate(humans):
+                                if humans[i].id in allInfected:
+                                    locationInfected.append([humans[i].trajectory[cTime][0], humans[i].trajectory[cTime][1],
+                                                             humans[i].trajectoryZ[cTime]])
+                                    locationHealthy.append([np.nan, np.nan, np.nan])
+                                else:
+                                    locationHealthy.append([humans[i].trajectory[cTime][0], humans[i].trajectory[cTime][1],
+                                                            humans[i].trajectoryZ[cTime]])
+                                    locationInfected.append([np.nan, np.nan, np.nan])
+                    else:
+                        pass
+
+            print(dayChecker)
+            print(eachDayInfected)
+
 
             coord = np.array(locationHealthy, dtype=np.float32)
-
             coordInfected = np.array(locationInfected, dtype=np.float32)
-            print("length coord:")
-            print(len(coord))
-
-            print("length coordInfected:")
-            print(len(coord))
-
-            print("length time")
-            print(len(t))
-
+            t = np.array([np.ones(len(humans)) * i for i in range(totalTime*len(dayChecker))], dtype=np.uint32).flatten()
             df = pd.DataFrame(
                 {"time": t, "x": coord[:, 0], "y": coord[:, 1], "z": coord[:, 2], "xInfected": coordInfected[:, 0],
                  "yInfected": coordInfected[:, 1], "zInfected": coordInfected[:, 2]})
-
-            print("length of t")
-            print(len(t))
             data = df[df['time'] == 0]
-
             graph, = ax.plot(data.x, data.y, data.z, c='green', marker='o', linestyle="",
                              markeredgecolor='black', markeredgewidth=0.5, markersize=4,label="Healthy moving object")
             new, = ax.plot(data.xInfected, data.yInfected, data.zInfected, color='red', marker='o', linestyle="",
                            markeredgecolor='black', markeredgewidth=0.5, markersize=4, label = "Infected moving object")
-
             timeIncreaser = 39600/(diff + 1)
             def animate(t):
-                global  sometime, newTime, currentDay ,labelDay, labelTime
+                global  sometime, newTime, currentDay ,labelDay, labelTime,timeArray
                 global timeController
                 data = df[df['time'] == t]
                 graph.set_data(data.x, data.y)
                 graph.set_3d_properties(data.z)
                 new.set_data(data.xInfected, data.yInfected)
                 new.set_3d_properties(data.zInfected)
-                if timeController>(diff+1):
+                if timeController>(totalTime*1) and currentDay<=maxDay:
                     currentDay+=1
-                    labelDay.set("Day: " + str(currentDay))
+                    labelDay.set("Day: " + str(currentDay+1))
                     sometime = time(8, 50)  # 8:50am
                     labelTime.set("Time: " + str(sometime))
+                    var2.set("Number of infected people: " + str(eachDayInfected[currentDay]))
+                    updateGraphs(ct, timeArray, eachDayInfected[currentDay], int(len(humans))-eachDayInfected[currentDay])
                     timeController = 0
-                else:
+                elif timeController<=(totalTime*1) and currentDay<=maxDay:
                     newTime = (datetime.combine(date.today(), sometime) + timedelta(seconds=timeIncreaser)).time()
                     sometime = newTime
                     labelTime.set("Time: " + str(newTime.strftime("%H:%M:%S")))
                     timeController += 1
-
                 return graph, new
 
             allPoints = []
@@ -744,11 +757,11 @@ class Menu(tkinter.Frame):
                     buttonF.pack(side="top", fill="x", padx=10, pady=1)
             var1 = tkinter.StringVar()
             label1 = tkinter.Label(canvas1, textvariable=var1, font=('Arial', 14))
-            var1.set("Total number of people: " + str(HumanCount))
+            var1.set("Total number of moving object: " + str(HumanCount))
             label1.pack(side="top", padx=5, pady=5)
             var2 = tkinter.StringVar()
             label2 = tkinter.Label(canvas1, textvariable=var2, font=('Arial', 14))
-            var2.set("Number of infected people: " + str(infectedHumanNumber))
+            var2.set("Number of infected moving object: " + str(eachDayInfected[currentDay]))
             label2.pack(side="top", padx=5, pady=5)
             labelNew = tkinter.Label(canvas1, justify='center')
             labelNew.pack()
@@ -759,25 +772,24 @@ class Menu(tkinter.Frame):
             ax2D.set_axis_off()
             ax2D.view_init(90)
             global ct, timeArray, f, c, axPie
-            ct = [infectedHumanNumber, infectedHumanNumber]
-            timeArray = [0, currentDay]
+            ct = [eachDayInfected[currentDay],eachDayInfected[currentDay]]
+            timeArray = [0,1]
             f = plt.figure(figsize=(5, 4))
             c = f.add_subplot(1, 1, 1)
-            c.axis([1, 20, 0, HumanCount])
+            c.axis([1, 20, 0, int(len(humans))])
             caja = plt.Rectangle((0, 0), 100, 100, fill=True)
-            cvst, = c.plot(infectedHumanNumber, color="red", label="Infected people")
+            cvst, = c.plot(eachDayInfected[currentDay], color="red", label="Infected moving object")
             c.legend(handles=[cvst])
             c.set_xlabel("Time (days)")
-            c.set_ylabel("Infections")
-            healthyHumanNumber = len(humans)-infectedHumanNumber
-            dataProportion = np.array([healthyHumanNumber, infectedHumanNumber])
+            c.set_ylabel("Infected moving object")
+            dataProportion = np.array([int(len(humans))-eachDayInfected[currentDay],eachDayInfected[currentDay]])
             # Creating pie
             myPie, axPie = plt.subplots(figsize=(5, 5))
             axPie.pie(dataProportion, autopct=lambda val: updaterOfValuesAndPercentage(val, dataProportion), explode=explode, labels=labelCondition, shadow=True, colors=colors, wedgeprops=wedgeProp)
-            update(ct, timeArray, infectedHumanNumber, healthyHumanNumber)
+            updateGraphs(ct, timeArray, eachDayInfected[currentDay], int(len(humans))-eachDayInfected[currentDay])
             Graph(canvas1, f).pack(side="bottom", padx=5, pady=5)
             Graph(canvas1, myPie).pack(side="bottom", padx=5, pady=5)
-            animation = matplotlib.animation.FuncAnimation(fig, animate, maxDay*totalTime, interval=0.0001, blit=True, repeat=True)
+            animation = matplotlib.animation.FuncAnimation(fig, animate, (len(dayChecker)+1) * (totalTime), interval=0.0001, blit=True, repeat=False)
             buttonPausingMov = tkinter.Button(frame_bottom, text="Pause simulation", bg='brown', fg='white', font=fontName, command=lambda animation=animation: pauseAnimation(animation))
             buttonPausingMov.pack(padx=2, pady=2, side="left")
             buttonStartingMov = tkinter.Button(frame_bottom, text="Continue simulation", bg='green', fg='white', font=fontName, command=lambda animation=animation: continueAnimation(animation))
