@@ -67,7 +67,7 @@ class MovingObject:
     def InfectedDayChecker(self):
         global infectedHumanNumber,healthyHumanNumber
         global ct, timeArray
-        if self.startInfection is True and self.dayPassedAfterMeetingInfected == self.incubationVal:
+        if self.startInfection is True and self.dayPassedAfterMeetingInfected >= self.incubationVal:
             if random.random() <= self.defaultInfectionProbability:
                     self.makeInfected()
                     self.becameNewInfected = True

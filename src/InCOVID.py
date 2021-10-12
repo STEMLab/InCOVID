@@ -512,7 +512,6 @@ class Menu(tkinter.Frame):
                 someTime = currTime
                 print("percentage of infection: " + str(float(countInfected/HumanCount*100))+"%")
             someTime = time(8, 50)
-            totalDays += 1
             for ival, h in enumerate(humans):
                 if h.startInfection == True and h.alreadyInfected == False:
                     h.dayPassedAfterMeetingInfected += 1
@@ -520,7 +519,7 @@ class Menu(tkinter.Frame):
                     if h.becameNewInfected == True:
                         dataToCSVInfection.append([h.id, dayCurrent + 1])
                         countInfected += 1
-
+            totalDays += 1
 
             if countInfected >= 0.9 * len(humans):
                 print("More than 90% of MO were infected")
