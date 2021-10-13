@@ -13,6 +13,8 @@ gmlObjectsDoors_3D = []
 gmlObjectsStairs_3D = []
 gmlObjectsElevators_3D = []
 gmlObjectsTransitions_3D = []
+dictRooms = {}
+
 
 class GMLOBJ_3D_FORFLOORS:
     def __init__(self):
@@ -245,3 +247,13 @@ def myGML_3D(gmlFileName):
             tempObject.allPos.append(myTemp)
         tempObject.sideNumber = int(numTimes)
         gmlObjectsTransitions_3D.append(tempObject)
+
+    global dictRooms
+
+    for floorT in range(len(newListFloors) + 1):
+        newList = []
+        for i, myobject in enumerate(GMLOBJ_3D_Objects):
+            if floorT == myobject.floor:
+                newList.append(myobject)
+                dictRooms[floorT] = newList
+

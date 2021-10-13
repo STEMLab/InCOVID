@@ -11,10 +11,9 @@ from src.constants import *
 from src.gmlParser import *
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
-import numpy as np
+import random
 import networkx as nx
-from sklearn.neighbors import NearestNeighbors
-from scipy.spatial import distance
+import csv
 import matplotlib.animation
 import pandas as pd
 import matplotlib.pyplot as plt
@@ -27,35 +26,25 @@ from src.gmlParser import myGML_3D
 
 
 matplotlib.use('agg')
-
 totalTime = 0
 IncubationVal = 0
-humansCountInfected = []
 locationHealthy = []
 locationInfected = []
 diff = 0
 timeController = 0
-newObjectsList = []
-first = []
-notMovingOvbjectsList = []
-movingObjectsList = []
 sometime = time(8, 50)  # 8:50am
 newTime = time(8,50) # 8:50am
-globalTime = 0
 humans = []
 infectionCase = []
 floorChanger = 1
 infectedHumanNumber = 0
 currentDay = 0
-currentTime = 0
 timeIncreaser = 0
 meetingCase = []
-valX=[]
-valY=[]
-valZ=[]
 allInfected = []
 eachDayInfected = []
 totalDays = 0
+MAX_DAYS = 100000
 
 #Meeting class
 class Meeting:
@@ -125,8 +114,7 @@ def drawer(ax,allPoints,allObjects,v3d,alphaVal,lineWidthVal,FloorCheck,floorN):
                     newlist.append(allObjects[i][j])
             newlist.append([np.nan,np.nan,np.nan])
     inputList = [newlist]
-    thisIndoor = ax.add_collection3d(Poly3DCollection(inputList, edgecolors='k', alpha=alphaVal,
-                                                      linewidth=lineWidthVal))
+    thisIndoor = ax.add_collection3d(Poly3DCollection(inputList, edgecolors='k', alpha=alphaVal,linewidth=lineWidthVal))
 
 # function for updating the values and the percentage in the pie chart
 def updaterOfValuesAndPercentage(this, thisValues):
@@ -415,15 +403,16 @@ class Menu(tkinter.Frame):
 
     # for generating data
     def generate(self, controller, pathGML, pathSIMOGenMovData, numberOfInfected,percentageInfection, spreadD, IP):
+        global diff, totalTime, HumanCount, totalDays
         # reading indoorGML file
         myGML_3D(pathGML.get())
-        global diff, totalTime, HumanCount, totalDays
+        incubationVal = int(IP.get())
+        infProb = float(percentageInfection.get())
         listDF, timeStart, timeEnd, diff = getData(pathSIMOGenMovData.get())
         spreadDistance = float(spreadD.get())
-        import csv
         dataToCSV = []
         dataToCSVInfection = []
-        header = ['MO_ID', 'InfectedMO_ID', 'meetingCoordinate', 'meetingRoom', 'meetingDay', 'meetingTime']
+        header = ['MO_ID', 'InfectedMO_ID', 'meetingCoordinate', 'meetingRoom', 'meetingDay']
         headerInfection = ['InfectedMO_ID', 'infectedDay']
         HumanCount = len(listDF)
         for i, ival in enumerate(listDF):
@@ -435,8 +424,6 @@ class Menu(tkinter.Frame):
                 regularHuman.path = listDF[i]['startCoord']
                 temp = listDF[i]['startCoord'].str.split(" ")
                 regularHuman.path = [[float(j) for j in i] for i in temp]
-                regularHuman.incubationVal = int(IP.get())+1
-                regularHuman.defaultInfectionProbability = float(percentageInfection.get())
                 humans.append(regularHuman)
                 del listT
                 i += 1
@@ -445,8 +432,7 @@ class Menu(tkinter.Frame):
 
         end_date = timeEnd
         delta = timedelta(seconds=1)
-        # default value how many days passed for simulation of infection
-        daystotalPassed = 100000
+
         totalTime = 0
 
         global allInfected
@@ -460,71 +446,82 @@ class Menu(tkinter.Frame):
         start_date2 = timeStart
         while start_date2 <= end_date:
                 for v, ival in enumerate(humans):
-                    if humans[v].startTime <= start_date2 and humans[v].endTime >= start_date2 and humans[v].iterator2 < len(humans[v].path):
-                        x = humans[v].path[humans[v].iterator2][0]
-                        y = humans[v].path[humans[v].iterator2][1]
-                        z = humans[v].path[humans[v].iterator2][2]
+                    if humans[v].startTime <= start_date2 and humans[v].endTime >= start_date2 and humans[v].iterator < len(humans[v].path):
+                        x = humans[v].path[humans[v].iterator][0]
+                        y = humans[v].path[humans[v].iterator][1]
+                        z = humans[v].path[humans[v].iterator][2]
                         humans[v].trajectory.append((x, y))
                         humans[v].trajectoryZ.append(z)
+                        humans[v].movingBoolList.append(True)
                     else:
                         humans[v].trajectory.append((np.nan, np.nan))
                         humans[v].trajectoryZ.append(np.nan)
-                    humans[v].iterator2 += 1
+                        humans[v].movingBoolList.append(False)
+                    humans[v].iterator += 1
                 start_date2 += delta
                 totalTime += 1
 
-        timeIncreaser = 39600 / (diff + 1)
-        someTime = time(8, 50)  # 8:50AM
-        currTime = time(8, 50)  # 8:50AM
+
+        healthyMO = []
+        infectedMO = []
+
+        for i,ival in enumerate(humans):
+            if humans[i].isInfected:
+                infectedMO.append(humans[i])
+            else:
+                healthyMO.append(humans[i])
+
 
         timeNow = clock.time()
-        for dayCurrent in range(daystotalPassed):
+        for dayCurrent in range(1, MAX_DAYS):
             for t in range(totalTime):
-                tempAllLocation = []
-                for i, v in enumerate(humans):
-                    tempAllLocation.append(humans[i].trajectory[t])
-                for i, v in enumerate(humans):
-                    if humans[i].isInfected == True:
-                        # find euclidean distance between moving objects at current timestamp
-                        answer = distance.cdist([humans[i].trajectory[t]], tempAllLocation, 'euclidean')
-                        ansToList = answer[0].tolist()
-                        for f in range(len(ansToList)):
-                            # exclude current moving object
-                            if (humans[f].id != humans[i].id and humans[f].isHealthy==True):
-                                # if the distance between the infected moving object and healthy moving object is less than spread distance
-                                if ansToList[f]!=None and ansToList[f] <= spreadDistance:
-                                    # find out the floor where the two moving object are located
-                                    floorVal = humans[f].checkAtWhichFloor(humans[f].trajectoryZ[t])
-                                    floorVal2 = humans[i].checkAtWhichFloor(humans[i].trajectoryZ[t])
-                                    # find out the cell where two moving objects are located
-                                    valueOfRoomNumber = humans[f].checker(humans[f].trajectory[t],floorVal)
-                                    valueOfRoomNumber2 = humans[i].checker(humans[i].trajectory[t],floorVal2)
-                                    # if two moving objects are in the same room
-                                    if  valueOfRoomNumber == valueOfRoomNumber2:
-                                        humans[f].metWithInfectedMO(humans[i],dayCurrent)
-                                        tempV = [humans[f].id, humans[i].id, (float(humans[f].trajectory[t][0]),float(humans[f].trajectory[t][1]),float(humans[f].trajectoryZ[t])),
-                                                              valueOfRoomNumber, dayCurrent + 1,str(currTime.strftime("%H:%M:%S"))]
-                                        if tempV not in dataToCSV:
-                                            dataToCSV.append(tempV)
-                                        else:
-                                            pass
-                currTime = (datetime.combine(date.today(), someTime) + timedelta(seconds=timeIncreaser)).time()
-                someTime = currTime
-                print("percentage of infection: " + str(float(countInfected/HumanCount*100))+"%")
-            someTime = time(8, 50)
-            for ival, h in enumerate(humans):
-                if h.startInfection == True and h.alreadyInfected == False:
-                    h.dayPassedAfterMeetingInfected += 1
-                    h.InfectedDayChecker()
-                    if h.becameNewInfected == True:
-                        dataToCSVInfection.append([h.id, dayCurrent + 1])
-                        countInfected += 1
+                    for i, ival in enumerate(infectedMO):
+                        # check whether infected person is moving at the current time
+                        if infectedMO[i].movingBoolList[t]:
+                            for f,fval in enumerate(healthyMO):
+                                # check whether healthy person is moving at the current time and is not at
+                                if healthyMO[f].movingBoolList[t] and healthyMO[f].startInfection==False:
+                                    a = np.array(healthyMO[f].trajectory[t])
+                                    b = np.array(infectedMO[i].trajectory[t])
+                                    dist = np.linalg.norm(a - b)
+                                    # if the distance between the infected moving object and healthy moving object is less or equal to spread distance
+                                    if dist <= spreadDistance:
+                                        # find out the floor where two moving object are located
+                                        floorVal = healthyMO[f].checkAtWhichFloor(healthyMO[f].trajectoryZ[t])
+                                        floorVal2 = infectedMO[i].checkAtWhichFloor(infectedMO[i].trajectoryZ[t])
+                                        # if two moving objects are at the same floor
+                                        if floorVal==floorVal2:
+                                            # find out the rooms where two moving objects are located
+                                            valueOfRoomNumber = healthyMO[f].checker(healthyMO[f].trajectory[t],floorVal)
+                                            valueOfRoomNumber2 = infectedMO[i].checker(infectedMO[i].trajectory[t],floorVal)
+                                            # if two moving objects are in the same room
+                                            if valueOfRoomNumber == valueOfRoomNumber2:
+                                                healthyMO[f].startInfection = True
+                                                tempV = [healthyMO[f].id, infectedMO[i].id, (healthyMO[f].trajectory[t][0],healthyMO[f].trajectory[t][1],healthyMO[f].trajectoryZ[t]), valueOfRoomNumber, dayCurrent]
+                                                dataToCSV.append(tempV)
+                    print("Current day: " + str(dayCurrent) + " | Percentage of infected moving objects: " + str(float(countInfected/HumanCount*100))+"%")
+                    print("current time: "+str(t)+"/"+str(totalTime))
+            for ival, h in enumerate(healthyMO):
+                if h.startInfection:
+                        if h.dayPassedAfterMeetingInfected == incubationVal:
+                            if random.random() <= infProb:
+                                h.makeInfected()
+                                dataToCSVInfection.append([h.id, dayCurrent])
+                                infectedMO.append(h)
+                                healthyMO.remove(h)
+                                countInfected += 1
+                            else:
+                                h.startInfection = False
+                                h.dayPassedAfterMeetingInfected = 0
+                        elif h.dayPassedAfterMeetingInfected < incubationVal:
+                                h.dayPassedAfterMeetingInfected += 1
             totalDays += 1
 
-            if countInfected >= 0.9 * len(humans):
+            if countInfected >= 0.9 * HumanCount:
                 print("More than 90% of MO were infected")
                 timeAfter = clock.time()
-                print("Required time: "+str(timeAfter-timeNow)+" seconds")
+                print("Total time: "+str(timeAfter-timeNow)+" seconds")
+                print("Finished generating data")
                 break
 
         with open('meetingWithMO.csv', 'w', encoding='UTF8', newline='') as f:
@@ -572,10 +569,9 @@ class Menu(tkinter.Frame):
             df = pd.concat(chunk)
             uniqueDays = df['infectedDay'].unique()
             maxDay = int(max(uniqueDays))
-            infectedIDs = df['InfectedMO_ID'].tolist()
             df_list = [d for _, d in df.groupby(['infectedDay'])]
 
-            global top, spreadDistance, frameNew, ax, fig, fig2D, ax2D, currentDay, labelDay, IncubationVal, currentTime, labelTime, timeIncreaser, var2, label2, newObjectsList, initialStartDate
+            global top, spreadDistance, frameNew, ax, fig, fig2D, ax2D, currentDay, labelDay, IncubationVal, labelTime, timeIncreaser, var2, label2, initialStartDate
             global allInfected, totalDays
             top = tkinter.Toplevel()
             top.title("Virus propagation model")
@@ -644,6 +640,7 @@ class Menu(tkinter.Frame):
             day = 1
             dayA = 0
 
+            print("Creating movement objects")
             while day<=(totalDays):
                 if dayA < len(df_list):
                     dayList = df_list[dayA]['infectedDay'].tolist()
@@ -651,12 +648,6 @@ class Menu(tkinter.Frame):
                     if day==infday and day not in dayChecker:
                         dayChecker.append(day)
                         infList = df_list[dayA]['InfectedMO_ID'].tolist()
-                        print("correct infdays")
-                        print(infday)
-                        print("infected number of people")
-                        print(len(infList))
-
-                        # adding new infected to the list
                         dayA += 1
                         day += 1
                         for x in range(len(infList)):
@@ -688,10 +679,8 @@ class Menu(tkinter.Frame):
                     else:
                         pass
 
-            print(dayChecker)
-            print(eachDayInfected)
-
-
+            # print(dayChecker)
+            # print(eachDayInfected)
             coord = np.array(locationHealthy, dtype=np.float32)
             coordInfected = np.array(locationInfected, dtype=np.float32)
             t = np.array([np.ones(len(humans)) * i for i in range(totalTime*len(dayChecker))], dtype=np.uint32).flatten()
@@ -793,7 +782,6 @@ class Menu(tkinter.Frame):
             buttonPausingMov.pack(padx=2, pady=2, side="left")
             buttonStartingMov = tkinter.Button(frame_bottom, text="Continue simulation", bg='green', fg='white', font=fontName, command=lambda animation=animation: continueAnimation(animation))
             buttonStartingMov.pack(padx=2, pady=2, side="left")
-
 
 # main function
 def main():
