@@ -20,7 +20,7 @@
 
 
 ## Prerequisites
-- Python 3.7
+- Python 3.9 (64-bit)
 - Java Development Kit 8 (JDK 8)
 - [Apache Maven 3.x](https://maven.apache.org/download.cgi)
 

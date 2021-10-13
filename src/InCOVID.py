@@ -311,6 +311,7 @@ def continueAnimation(anim):
 def pauseAnimation(anim):
     anim.event_source.stop()
 
+
 # program class
 class program(tkinter.Tk):
     def __init__(self, *args, **kwargs):

@@ -1,4 +1,7 @@
-from src.gmlParser import dictRooms, floorsAndValues
+from src.gmlParser import dictRooms
+from src.gmlParser import floorsAndValues
+
+global floorsAndValues,dictRooms
 
 class MovingObject:
     def __init__(self,id,typeMO):
@@ -35,5 +38,3 @@ class MovingObject:
                 for eachR in range(len(v)):
                     if v[eachR].poly_path.contains_point(currentPointLocation):
                         return v[eachR].id
-                    else:
-                        pass
