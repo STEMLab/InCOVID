@@ -248,10 +248,13 @@ def myGML_3D(gmlFileName):
         tempObject.sideNumber = int(numTimes)
         gmlObjectsTransitions_3D.append(tempObject)
 
-    for floorT in range(len(newListFloors) + 1):
+    def getList(dict):
+        return list(dict.keys())
+
+    listOfFloorAval = getList(floorsAndValues)
+    for floorT in range(len(listOfFloorAval)):
         newList = []
         for i, myobject in enumerate(GMLOBJ_3D_Objects):
-            if floorT == myobject.floor:
+            if listOfFloorAval[floorT] == myobject.floor:
                 newList.append(myobject)
-                dictRooms[floorT] = newList
-
+                dictRooms[listOfFloorAval[floorT]] = newList
