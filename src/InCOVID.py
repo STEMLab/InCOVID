@@ -466,11 +466,16 @@ class Menu(tkinter.Frame):
         healthyMO = []
         infectedMO = []
 
+
+
         for i,ival in enumerate(humans):
             if humans[i].isInfected:
                 infectedMO.append(humans[i])
             else:
                 healthyMO.append(humans[i])
+
+
+
 
 
         timeNow = clock.time()
